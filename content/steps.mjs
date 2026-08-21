@@ -17,7 +17,12 @@ export const steps = [
     title: "一 · 0 · 为什么这才是 dsh 和 pi 的分水岭",
     prose:
       "<p>先把话说清楚：<b>「可追溯事件流」不是 dsh 的独门绝技</b>，pi 也有 traceable sessions。真正让 dsh 不一样的是<em>架构形态</em>——它没有一个「特权内核」，一切能力都是插件。</p>" +
-      "<p>对比一下就懂：<br/>· <b>pi</b>：一个写死的 agent loop 主循环，工具、模型是它调用的模块，扩展靠改代码 / 注入函数。<br/>· <b>dsh</b>：一个 Cordis 插件内核，模型、工具、会话、<b>连 loop 本身都是插件</b>，挂在共享 <code>ctx</code> 上，靠<b>配置</b >换装，不碰源码。</p>" +
+      "<table class='compare'><thead><tr><th>维度</th><th>pi</th><th>dsh</th></tr></thead><tbody>" +
+      "<tr><td>核心</td><td>写死的 agent loop 主循环</td><td class='hi'>Cordis 插件内核，无特权核心</td></tr>" +
+      "<tr><td>模型 / 工具 / 会话</td><td>loop 调用的模块</td><td class='hi'>挂在共享 ctx 上的插件</td></tr>" +
+      "<tr><td>agent loop 本身</td><td>就是那个主循环</td><td class='hi'>也是一个插件，可换</td></tr>" +
+      "<tr><td>怎么扩展 / 换装</td><td>改代码 / 注入函数</td><td class='hi'>改配置，源码不动</td></tr>" +
+      "</tbody></table>" +
       "<p>官方架构文档原话：<em>There is no privileged core to patch.</em> 这一章就把这个内核从零写出来。</p>" +
       "<p class='cite'>依据：<a href='https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/master/docs/architecture.md' target='_blank' rel='noreferrer'>dsh 架构文档 · Cordis 章节</a></p>",
   },

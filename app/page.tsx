@@ -53,6 +53,52 @@ function deriveMessages(applied: any[]) {
   return msgs;
 }
 
+function PluginDemo() {
+  const [model, setModel] = useState<"openai" | "deepseek">("deepseek");
+  const [input, setInput] = useState("读 config.json");
+  const [out, setOut] = useState("");
+  const [mounted, setMounted] = useState<string[]>([]);
+
+  const run = useCallback(async () => {
+    const services = new Map<string, any>();
+    const listeners = new Map<string, Set<any>>();
+    const ctx = {
+      provide: (n: string, impl: any) => services.set(n, impl),
+      get: (n: string) => services.get(n),
+      on: (e: string, fn: any) => { if (!listeners.has(e)) listeners.set(e, new Set()); listeners.get(e)!.add(fn); },
+      emit: async (e: string, ...a: any[]) => { let r: any; for (const fn of listeners.get(e) ?? []) r = await fn(...a); return r; },
+    };
+    // buildAgent({ model }) —— 只有这一行随配置变
+    if (model === "deepseek") ctx.provide("model", { name: "deepseek", call: async (m: string) => `ds: ${m}` });
+    else ctx.provide("model", { name: "gpt", call: async (m: string) => `gpt: ${m}` });
+    ctx.provide("tools", { read: (p: string) => `content of ${p}` });
+    ctx.on("run", async (x: string) => ctx.get("model").call(x));
+    const r = await ctx.emit("run", input);
+    setOut(`model = ${ctx.get("model").name}   →   run("${input}") = ${r}`);
+    setMounted([`model: ${model}`, "tools", "agentLoop"]);
+  }, [model, input]);
+
+  useEffect(() => { run(); }, [model]); // 切换模型即时重算
+
+  return (
+    <div className="plugin-demo">
+      <div className="pd-title">▶ 试运行 · 配置即组装（切换下面的 model 插件看输出变化）</div>
+      <div className="pd-config">buildAgent(&#123; model: <span className="pd-val">&quot;{model}&quot;</span> &#125;)</div>
+      <div className="pd-toggle">
+        <button className={model === "openai" ? "on" : ""} onClick={() => setModel("openai")}>openaiModel</button>
+        <button className={model === "deepseek" ? "on" : ""} onClick={() => setModel("deepseek")}>deepseekModel</button>
+      </div>
+      <div className="pd-chips">挂载的插件：{mounted.map((m) => <span key={m} className="chip">{m}</span>)}</div>
+      <div className="pd-run">
+        <input value={input} onChange={(e) => setInput(e.target.value)} />
+        <button onClick={run}>run ▶</button>
+      </div>
+      <div className="pd-out">{out}</div>
+      <div className="pd-note">只改了 <code>config.model</code> 一行，<b>loop / tools / 内核都没动</b>，输出就换了 —— 这是 pi 里必须改代码才能做到的事。</div>
+    </div>
+  );
+}
+
 export default function Page() {
   const [activeId, setActiveId] = useState(STEPS[0].id);
   const [tab, setTab] = useState<"code" | "trace">("code");
@@ -168,6 +214,7 @@ export default function Page() {
               <span className="step-num">STEP {i} · {s.file}</span>
               <h2>{s.title}</h2>
               <div dangerouslySetInnerHTML={{ __html: s.prose }} />
+              {s.id === "k4" && <PluginDemo />}
             </article>
           ))}
           <footer className="article-foot">
