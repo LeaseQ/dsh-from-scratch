@@ -123,6 +123,74 @@ function PluginDemo() {
   );
 }
 
+function CordisDemo() {
+  const ALL = [
+    { id: "model", label: "modelPlugin", effect: "provide('model')" },
+    { id: "tools", label: "toolsPlugin", effect: "provide('tools')" },
+    { id: "loop", label: "agentLoopPlugin", effect: "on('run')" },
+  ];
+  const [mounted, setMounted] = useState<string[]>(["model", "loop"]);
+  const [log, setLog] = useState<string[]>(["初始：挂了 modelPlugin、agentLoopPlugin"]);
+  const [out, setOut] = useState<string | null>(null);
+
+  const services = mounted.filter((m) => m !== "loop"); // model / tools 提供服务；loop 只挂监听
+  const runListeners = mounted.includes("loop") ? ["agentLoopPlugin"] : [];
+
+  const mount = (id: string) => {
+    if (mounted.includes(id)) return;
+    const p = ALL.find((x) => x.id === id)!;
+    setMounted([...mounted, id]);
+    setLog((l) => [...l, `use(${p.label})：注册 ${p.effect}`]);
+    setOut(null);
+  };
+  const unmount = (id: string) => {
+    const p = ALL.find((x) => x.id === id)!;
+    setMounted(mounted.filter((x) => x !== id));
+    setLog((l) => [...l, `dispose(${p.label})：回滚 ${p.effect}`]);
+    setOut(null);
+  };
+  const emitRun = () => {
+    if (!mounted.includes("loop")) return setOut("emit('run') → 没有插件在监听 run，什么都没发生");
+    if (!mounted.includes("model")) return setOut("emit('run') → agentLoop 想调 model，但 model 服务没挂，报错");
+    const t = mounted.includes("tools");
+    setOut(`emit('run') → agentLoop 触发 → 调 model 服务${t ? "，并用 tools 读文件" : "（tools 没挂，跳过读文件）"} → 返回结果`);
+  };
+
+  return (
+    <div className="cordis-demo">
+      <div className="pd-title">Cordis 内核：往 ctx 上挂插件，看服务、事件、副作用怎么变</div>
+      <div className="cd-cols">
+        <div className="cd-box">
+          <div className="cd-h">可挂载插件</div>
+          {ALL.map((p) => (
+            <button key={p.id} className="cd-mount" disabled={mounted.includes(p.id)} onClick={() => mount(p.id)}>
+              + {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="cd-box">
+          <div className="cd-h">共享 ctx</div>
+          <div className="cd-row"><span className="cd-k">services</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{s}</span>) : <span className="cd-empty">空</span>}</div>
+          <div className="cd-row"><span className="cd-k">on(run)</span>{runListeners.length ? runListeners.map((s) => <span key={s} className="cd-chip ev">{s}</span>) : <span className="cd-empty">空</span>}</div>
+          <div className="cd-h cd-h2">已挂插件</div>
+          <div className="cd-row">
+            {mounted.length ? mounted.map((id) => {
+              const p = ALL.find((x) => x.id === id)!;
+              return <span key={id} className="cd-chip mnt">{p.label}<button onClick={() => unmount(id)} title="卸载">×</button></span>;
+            }) : <span className="cd-empty">还没挂任何插件</span>}
+          </div>
+        </div>
+      </div>
+      <div className="cd-run"><button onClick={emitRun}>emit(&apos;run&apos;) ▶</button>{out && <span className="cd-outtext">{out}</span>}</div>
+      <div className="cd-log">
+        <div className="cd-h">操作日志（副作用的登记与回滚）</div>
+        {log.map((l, i) => <div key={i} className="cd-logline">{l}</div>)}
+      </div>
+      <div className="pd-note">挂一个插件，它的服务或监听就出现在 ctx 里；卸载它，注册被逐条回滚。这就是 Cordis 的三样东西：服务、事件、可撤销的副作用。</div>
+    </div>
+  );
+}
+
 export default function Page() {
   const [activeId, setActiveId] = useState(STEPS[0].id);
   const [tab, setTab] = useState<"code" | "trace">("code");
@@ -237,6 +305,7 @@ export default function Page() {
               <span className="step-num">STEP {i} · {s.file}</span>
               <h2>{s.title}</h2>
               <div dangerouslySetInnerHTML={{ __html: s.prose }} />
+              {s.id === "k3" && <CordisDemo />}
               {s.id === "k4" && <PluginDemo />}
             </article>
           ))}
