@@ -217,3 +217,15 @@ code { font-family: var(--mono); font-size: 0.85em; background: #efece6; padding
 .pf-quote { font-size: 16px; color: var(--txt-dim); border-left: 3px solid var(--line-2); padding: 4px 0 4px 16px; margin: 4px 0 22px; font-style: normal; }
 .pf-quote span { display: block; font-style: normal; font-size: 13px; color: var(--txt-faint); margin-top: 5px; }
 .pf-note { font-size: 13.5px; color: var(--txt-faint) !important; background: var(--panel-2); border-radius: 8px; padding: 11px 15px; line-height: 1.7 !important; }
+
+/* ---------- 修复横向溢出 ---------- */
+body { overflow-x: hidden; }
+.stage, .pane { min-width: 0; }
+.trace-body { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.trace-code, .trace-side, .panel { min-width: 0; }
+.log-list, .msg-list { min-width: 0; }
+.log-list .ev { min-width: 0; }
+.log-list .ev .ty { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-list .msg, .msg-list .msg .tc { overflow-wrap: anywhere; word-break: break-word; }
+.pd-out, .pd-line { overflow-wrap: anywhere; word-break: break-word; }
+.pd-config { overflow-wrap: anywhere; }
