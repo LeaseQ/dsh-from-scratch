@@ -17,6 +17,68 @@ export const meta = {
     "<p class='pf-note'>说明：形式参考了 <a href='https://pi-from-scratch.vercel.app/' target='_blank' rel='noreferrer'>pi-from-scratch</a>。</p>",
 };
 
+// 对标 pi 那张「一轮 Agent Loop 内部数据流」的内联 SVG：中心是共享 ctx，
+// 组装期各插件登记到 ctx，运行期 emit('run') 驱动一轮循环，虚线为投影到 UI / Trace。
+const FLOW_SVG =
+  "<div class='dfd'>" +
+  "<svg viewBox='0 0 840 620' role='img' aria-label='nano-dsh 装配与一轮 Agent Loop 数据流图' style='width:100%;max-width:820px;height:auto;display:block'>" +
+  "<defs>" +
+  "<marker id='ah' markerWidth='10' markerHeight='10' refX='7' refY='3' orient='auto'><path d='M0,0 L7,3 L0,6 Z' fill='#8a8f98'/></marker>" +
+  "<marker id='ahd' markerWidth='10' markerHeight='10' refX='7' refY='3' orient='auto'><path d='M0,0 L7,3 L0,6 Z' fill='#4f46e5'/></marker>" +
+  "</defs>" +
+  "<text x='28' y='24' fill='#6b655c' font-size='13' font-weight='600'>组装期 · use(plugin)：向同一个 ctx 登记服务 / 监听 / 可撤销副作用</text>" +
+  "<rect x='40' y='40' width='150' height='40' rx='9' fill='#eef5f3' stroke='#cfe4de'/><text x='115' y='65' text-anchor='middle' font-size='13' fill='#0f766e'>modelPlugin</text>" +
+  "<rect x='228' y='40' width='150' height='40' rx='9' fill='#eef5f3' stroke='#cfe4de'/><text x='303' y='65' text-anchor='middle' font-size='13' fill='#0f766e'>toolsPlugin</text>" +
+  "<rect x='416' y='40' width='172' height='40' rx='9' fill='#eef0fb' stroke='#d7dbf5'/><text x='502' y='65' text-anchor='middle' font-size='13' fill='#4f46e5'>agentLoopPlugin</text>" +
+  "<rect x='624' y='40' width='150' height='40' rx='9' fill='#eef5f3' stroke='#cfe4de'/><text x='699' y='65' text-anchor='middle' font-size='13' fill='#0f766e'>sessionPlugin</text>" +
+  "<g stroke='#8a8f98' stroke-width='1.4' fill='none'>" +
+  "<line x1='115' y1='80' x2='115' y2='154' marker-end='url(#ah)'/>" +
+  "<line x1='303' y1='80' x2='303' y2='154' marker-end='url(#ah)'/>" +
+  "<line x1='502' y1='80' x2='502' y2='154' marker-end='url(#ah)'/>" +
+  "<line x1='699' y1='80' x2='699' y2='154' marker-end='url(#ah)'/>" +
+  "</g>" +
+  "<g font-size='11' fill='#57606a' text-anchor='middle' font-family='ui-monospace,monospace'>" +
+  "<rect x='63' y='112' width='104' height='15' rx='3' fill='#fbfaf8'/><text x='115' y='124'>provide('model')</text>" +
+  "<rect x='255' y='112' width='96' height='15' rx='3' fill='#fbfaf8'/><text x='303' y='124'>provide('tools')</text>" +
+  "<rect x='472' y='112' width='60' height='15' rx='3' fill='#fbfaf8'/><text x='502' y='124'>on('run')</text>" +
+  "<rect x='643' y='112' width='112' height='15' rx='3' fill='#fbfaf8'/><text x='699' y='124'>provide('sessions')</text>" +
+  "</g>" +
+  "<rect x='40' y='154' width='734' height='64' rx='14' fill='#eef5f3' stroke='#cfe4de' stroke-width='1.4'/>" +
+  "<text x='407' y='182' text-anchor='middle' font-size='15' font-weight='700' fill='#0f766e'>共享 ctx</text>" +
+  "<text x='407' y='205' text-anchor='middle' font-size='11.5' fill='#2c463f'>服务注册表 provide / get　·　事件总线 on / emit　·　可撤销副作用（卸载即回滚）</text>" +
+  "<text x='28' y='260' fill='#6b655c' font-size='13' font-weight='600'>运行期 · emit('run') 触发 agentLoop 监听器，驱动一轮循环</text>" +
+  "<line x1='100' y1='218' x2='100' y2='294' stroke='#8a8f98' stroke-width='1.4' fill='none' marker-end='url(#ah)'/>" +
+  "<rect x='108' y='247' width='40' height='15' rx='3' fill='#fbfaf8'/><text x='128' y='259' text-anchor='middle' font-size='11' fill='#57606a' font-family='ui-monospace,monospace'>触发</text>" +
+  "<rect x='40' y='298' width='120' height='46' rx='10' fill='#eef0fb' stroke='#d7dbf5'/><text x='100' y='326' text-anchor='middle' font-size='12.5' fill='#4f46e5' font-family='ui-monospace,monospace'>emit('run')</text>" +
+  "<rect x='196' y='298' width='168' height='46' rx='10' fill='#eef0fb' stroke='#d7dbf5'/><text x='280' y='320' text-anchor='middle' font-size='12.5' fill='#4f46e5'>agentLoop 监听器</text><text x='280' y='336' text-anchor='middle' font-size='10.5' fill='#6b6fae' font-family='ui-monospace,monospace'>on('run') handler</text>" +
+  "<rect x='402' y='298' width='176' height='46' rx='10' fill='#eef5f3' stroke='#cfe4de'/><text x='490' y='320' text-anchor='middle' font-size='12.5' fill='#0f766e'>deriveMessages</text><text x='490' y='336' text-anchor='middle' font-size='10.5' fill='#2c463f'>从日志算出模型输入</text>" +
+  "<rect x='618' y='298' width='178' height='46' rx='10' fill='#ffffff' stroke='#ddd8cf'/><text x='707' y='320' text-anchor='middle' font-size='12.5' fill='#1f1d1a'>model 产出</text><text x='707' y='336' text-anchor='middle' font-size='10' fill='#6b655c' font-family='ui-monospace,monospace'>assistant/message · toolCalls</text>" +
+  "<g stroke='#8a8f98' stroke-width='1.4' fill='none'>" +
+  "<line x1='160' y1='321' x2='196' y2='321' marker-end='url(#ah)'/>" +
+  "<line x1='364' y1='321' x2='402' y2='321' marker-end='url(#ah)'/>" +
+  "<line x1='578' y1='321' x2='618' y2='321' marker-end='url(#ah)'/>" +
+  "<line x1='707' y1='344' x2='707' y2='432' marker-end='url(#ah)'/>" +
+  "</g>" +
+  "<rect x='560' y='436' width='236' height='46' rx='10' fill='#ffffff' stroke='#ddd8cf'/><text x='678' y='458' text-anchor='middle' font-size='12.5' fill='#1f1d1a'>tool.execute</text><text x='678' y='474' text-anchor='middle' font-size='10.5' fill='#6b655c' font-family='ui-monospace,monospace'>产出 tool/result</text>" +
+  "<rect x='250' y='436' width='252' height='46' rx='10' fill='#eef5f3' stroke='#cfe4de'/><text x='376' y='458' text-anchor='middle' font-size='12.5' fill='#0f766e'>append SessionEvent</text><text x='376' y='474' text-anchor='middle' font-size='10.5' fill='#2c463f'>写入只增不改的日志</text>" +
+  "<line x1='558' y1='459' x2='506' y2='459' stroke='#8a8f98' stroke-width='1.4' fill='none' marker-end='url(#ah)'/>" +
+  "<path d='M376,436 C 400,392 450,372 486,346' stroke='#8a8f98' stroke-width='1.4' fill='none' marker-end='url(#ah)'/>" +
+  "<rect x='398' y='386' width='72' height='15' rx='3' fill='#fbfaf8'/><text x='434' y='398' text-anchor='middle' font-size='11' fill='#57606a' font-family='ui-monospace,monospace'>next turn</text>" +
+  "<rect x='40' y='498' width='196' height='46' rx='10' fill='#eef0fb' stroke='#d7dbf5'/><text x='138' y='520' text-anchor='middle' font-size='12.5' fill='#383a52'>UI · Trace 面板</text><text x='138' y='536' text-anchor='middle' font-size='10' fill='#6b655c'>回放 / 可观测（emitted to UI）</text>" +
+  "<g stroke='#4f46e5' stroke-width='1.3' fill='none' stroke-dasharray='5 4'>" +
+  "<line x1='320' y1='482' x2='185' y2='498' marker-end='url(#ahd)'/>" +
+  "<line x1='270' y1='344' x2='110' y2='498' marker-end='url(#ahd)'/>" +
+  "</g>" +
+  "<rect x='206' y='479' width='96' height='15' rx='3' fill='#fbfaf8'/><text x='254' y='491' text-anchor='middle' font-size='10.5' fill='#4f46e5' font-family='ui-monospace,monospace'>session 事件投影</text>" +
+  "<rect x='104' y='402' width='92' height='15' rx='3' fill='#fbfaf8'/><text x='150' y='414' text-anchor='middle' font-size='10.5' fill='#4f46e5' font-family='ui-monospace,monospace'>agent 事件投影</text>" +
+  "<line x1='300' y1='576' x2='340' y2='576' stroke='#8a8f98' stroke-width='1.6' marker-end='url(#ah)'/>" +
+  "<text x='348' y='580' font-size='11.5' fill='#57606a'>实线：在 ctx 内流动 / 写入日志</text>" +
+  "<line x1='560' y1='576' x2='600' y2='576' stroke='#4f46e5' stroke-width='1.4' stroke-dasharray='5 4' marker-end='url(#ahd)'/>" +
+  "<text x='608' y='580' font-size='11.5' fill='#4f46e5'>虚线：投影到 UI · Trace</text>" +
+  "</svg>" +
+  "<p class='dfd-cap'>图：nano-dsh 一轮 Agent Loop 的装配与内部数据流</p>" +
+  "</div>";
+
 export const steps = [
   /* ========== 第一模块：万物皆插件 ========== */
   {
@@ -84,6 +146,21 @@ export const steps = [
     prose:
       "<p>内核齐了，现在把开头你组装的那个 agent 正式拼出来。每项能力都写成插件：<code>openaiModel</code>、<code>deepseekModel</code>、<code>tools</code>，连 agent loop 也不过是个监听 <code>run</code> 的插件。skills、session、sandbox、storage、scheduler、ui 这些类目同样按这套写法挂到同一个 <code>ctx</code> 上，没有谁是特权核心。</p>" +
       "<p>在 <code>buildAgent</code> 里换一个 model，整条链路随之切换，内核、loop、tools 一处都不用改。这正是开头那种「随取随换、随取随卸」背后的机制：增加能力、替换模型、拆除组件，都只改配置。下面这个交互框可直接操作，切换 model 观察输出如何变化。</p>",
+  },
+  {
+    id: "k6",
+    file: "compose.ts",
+    region: "k4",
+    title: "组装与数据流：这些插件怎么拼成一个能跑的 agent",
+    prose:
+      "<p>到这里，<code>model</code>、<code>tools</code>、<code>agentLoop</code> 都以插件形式挂在同一个 <code>ctx</code> 上了。回到开头几个具体疑问：给了这么多文件，它们怎么组装成一个能跑的 agent？谁在监听、谁在分发？插件之间从不互相 <code>import</code>，凭什么能对上话？答案都落在 <code>ctx</code> 这一层。把过程拆成<b>组装期</b>与<b>运行期</b>两段来看。</p>" +
+      "<p><b>组装期</b>发生在 <code>buildAgent</code> 里。<code>new Context()</code> 先建出一个空的 <code>ctx</code>，随后按顺序 <code>use</code> 每个插件。每次 <code>use(plugin)</code> 执行时，插件把要贡献的东西登记到 <code>ctx</code>：<code>model</code>、<code>tools</code> 用 <code>provide</code> 注册服务，<code>agentLoop</code> 用 <code>ctx.on('run', handler)</code> 注册一个监听器，登记的同时留下可撤销的回滚记录。<code>use</code> 的先后有意义：<code>agentLoop</code> 运行时会向 <code>ctx</code> 取 <code>model</code>，因此 <code>model</code> 服务要在触发之前就位。顺序保证的是「触发那一刻 <code>ctx</code> 上该有的都在」，而非插件间互相调用。装配结束，<code>ctx</code> 上攒齐了服务表与监听表，没有需要打补丁的特权核心。</p>" +
+      "<div class='callout tip'><span class='c-h'>插件靠什么对上话</span>插件之间零直接 <code>import</code>，全靠 <code>ctx</code> 契约会合：约定好的事件名（如 <code>'run'</code>）、服务键（如 <code>'model'</code> / <code>'tools'</code>）、以及类型化的载荷（<code>SessionEvent</code> 等类型定义）就是它们提前签好的通信协议。谁都不点名对方，只在 <code>ctx</code> 上按约定的名字会合。</div>" +
+      "<p><b>谁监听、谁分发</b>：监听方是插件，<code>agentLoop</code> 通过 <code>ctx.on('run', handler)</code> 订阅了 <code>'run'</code>；分发方是 <code>ctx</code> 本身，<code>ctx.emit('run', ...)</code> 把这次触发派发给所有注册在 <code>'run'</code> 上的监听器，逐个调用。触发方与监听方彼此不点名。<code>ctx</code> 既是服务注册表（<code>provide</code> / <code>get</code> 查找服务），又是事件总线（<code>on</code> / <code>emit</code> 收发事件），承担的正是居中转发这一角色。</p>" +
+      "<p><b>运行期</b>：装配好后，<code>emit('run')</code> 就能跑。<code>ctx</code> 找到 <code>agentLoop</code> 的监听器并调用；监听器从 <code>ctx</code> 取到 <code>model</code> 与 <code>tools</code>，用 <code>deriveMessages</code> 从会话日志算出模型输入，交给 <code>model</code> 产出回复与工具调用，逐个 <code>tool.execute</code>，把每一步作为 <code>SessionEvent</code> 追加进只增不改的日志；本轮结束后，下一轮再从日志重新派生历史，如此循环。下图对标 pi 那张「一轮 Agent Loop 内部数据流」，画的是 dsh 的装配与一轮循环。</p>" +
+      FLOW_SVG +
+      "<div class='callout def'><span class='c-h'>与真实 dsh 对照</span>真实 dsh 把这套装配交给 <code>profile</code> / <code>bundle</code> 在启动时分层组合，服务键是 <code>ctx.llm</code> / <code>ctx.tools</code> / <code>ctx.sessions</code> / <code>ctx.agentLoop</code>，事件也细分为 <code>session/*</code>、<code>agent/*</code>、<code>llm/*</code> 等多个域；<code>deriveMessages()</code> 从日志投影模型历史、以及「模型能看到的必须先写进日志」这两条，与 nano 版一致。nano 版把键名简化成 <code>'model'</code> / <code>'tools'</code>，把触发简化成单个 <code>'run'</code> 事件，机制对齐，字段做了裁剪。</div>" +
+      "<p class='cite'>参考：<a href='https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/master/docs/architecture.md' target='_blank' rel='noreferrer'>dsh 架构文档 · Cordis / Turn flow / Session log</a></p>",
   },
 
   /* ========== 第二模块：可追溯事件流 ========== */

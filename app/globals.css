@@ -100,6 +100,11 @@ code { font-family: var(--mono); font-size: 0.85em; background: #efece6; padding
 .flow-arrow { color: var(--txt-faint); font-size: 14px; }
 .flow-note { font-size: 12.5px; color: var(--txt-faint); margin-top: 12px; line-height: 1.7; }
 
+/* ---------- 正经数据流图（内联 SVG） ---------- */
+.dfd { margin: 22px 0 10px; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+.dfd svg { font-family: var(--sans); }
+.dfd-cap { text-align: center; font-size: 12.5px; color: var(--txt-dim); margin-top: 10px; }
+
 .article-foot { margin-top: 36px; padding-top: 24px; }
 .article-foot p { font-size: 14px; color: var(--txt-dim); margin-bottom: 8px; }
 
