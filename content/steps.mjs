@@ -25,7 +25,8 @@ export const steps = [
     region: "k0",
     title: "先动手组装一个 agent",
     prose:
-      "<p>我们先组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑。</p>" +
+      "<p>我们先组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
+      "<p>dsh 主打「万物皆插件」，可挂载的能力远不止这三样。官网把 models、tools、skills、sessions、sandboxes、storage、loops、scheduling、UI 都列为插件类目：model 提供生成回复的适配器、tools 提供可被调用的工具、skills 提供可复用的技能片段、session 提供 append-only 事件日志、sandbox 提供隔离执行环境、storage 提供持久化、scheduler 负责后台与定时任务、ui 负责界面渲染。它们都挂在同一个 <code>ctx</code> 上，没有谁是特权核心。</p>" +
       "<p>下面这个交互框可直接操作。这些能力都可以挂载、卸载或替换，配置好后点 <code>emit('run')</code> 观察结果。先通过挂载、卸载与多次 run 建立直观印象。</p>" +
       "<p>操作时不妨观察一点：卸载某项能力，与它相关的行为随即消失；重新挂载，行为又恢复。</p>",
   },
@@ -81,7 +82,7 @@ export const steps = [
     region: "k4",
     title: "由表及里（四）：用配置把插件拼成一个 agent",
     prose:
-      "<p>内核齐了，现在把开头你组装的那个 agent 正式拼出来。每项能力都写成插件：<code>openaiModel</code>、<code>deepseekModel</code>、<code>tools</code>，连 agent loop 也不过是个监听 <code>run</code> 的插件。</p>" +
+      "<p>内核齐了，现在把开头你组装的那个 agent 正式拼出来。每项能力都写成插件：<code>openaiModel</code>、<code>deepseekModel</code>、<code>tools</code>，连 agent loop 也不过是个监听 <code>run</code> 的插件。skills、session、sandbox、storage、scheduler、ui 这些类目同样按这套写法挂到同一个 <code>ctx</code> 上，没有谁是特权核心。</p>" +
       "<p>在 <code>buildAgent</code> 里换一个 model，整条链路随之切换，内核、loop、tools 一处都不用改。这正是开头那种「随取随换、随取随卸」背后的机制：增加能力、替换模型、拆除组件，都只改配置。下面这个交互框可直接操作，切换 model 观察输出如何变化。</p>",
   },
 

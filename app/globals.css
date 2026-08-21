@@ -285,6 +285,15 @@ body { overflow-x: hidden; }
 .cd-run button { font-size: 12.5px; font-weight: 600; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
 .cd-run button:hover { filter: brightness(1.08); }
 .cd-outtext { font-family: var(--mono); font-size: 12px; color: #423e37; }
+.cd-key { font-family: var(--mono); font-size: 10.5px; color: var(--txt-faint); float: right; }
+.cd-outbox { border: 1px solid var(--line); border-radius: 8px; background: #faf9f6; padding: 9px 12px; margin-bottom: 12px; }
+.cd-outline { font-family: var(--mono); font-size: 12px; color: #423e37; line-height: 1.75; word-break: break-word; }
+.pd-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.pd-cell { font-family: var(--mono); font-size: 12px; padding: 8px 6px; border-radius: 8px; border: 1px solid var(--line-2); background: #faf9f6; color: var(--txt-dim); cursor: pointer; transition: 0.15s; }
+.pd-cell:hover { border-color: var(--accent); }
+.pd-cell.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.pd-effline { color: #cdd6e4; font-size: 12.5px; line-height: 1.7; }
+@media (max-width: 640px) { .pd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .cd-log { background: #0f1720; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; max-height: 150px; overflow: auto; }
 .cd-log .cd-h { color: #6b7686; margin-bottom: 6px; }
 .cd-logline { font-family: var(--mono); font-size: 11.5px; color: #9fe3c4; line-height: 1.7; word-break: break-word; }

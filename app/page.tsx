@@ -52,12 +52,28 @@ function deriveMessages(applied: any[]) {
   return msgs;
 }
 
+// 一份「有代表性的可挂载插件清单」，类目对齐 dsh 官网列出的「皆为插件」的能力
+// （models / tools / skills / sessions / sandboxes / storage / loops / scheduling / UI）。
+// 带 * 的 ctx 键为教学示意：官网将其列为插件类目，但架构文档未给出确切键名。
+const PD_TOGGLES: { key: string; label: string; cat: string }[] = [
+  { key: "tools", label: "tools", cat: "工具注册表" },
+  { key: "skills", label: "skills", cat: "可复用技能" },
+  { key: "session", label: "session", cat: "事件日志" },
+  { key: "sandbox", label: "sandbox", cat: "隔离执行" },
+  { key: "storage", label: "storage", cat: "持久化" },
+  { key: "scheduler", label: "scheduler", cat: "后台调度" },
+  { key: "ui", label: "ui", cat: "界面渲染" },
+  { key: "loop", label: "agentLoop", cat: "run 循环" },
+];
+
 function PluginDemo() {
   const [model, setModel] = useState<"openai" | "deepseek">("deepseek");
-  const [toolsOn, setToolsOn] = useState(true);
-  const [loopOn, setLoopOn] = useState(true);
-  const [input, setInput] = useState("读 config.json");
-  const [res, setRes] = useState<{ model: string; text: string } | null>(null);
+  const [on, setOn] = useState<Record<string, boolean>>({
+    tools: true, skills: true, session: true, sandbox: false,
+    storage: true, scheduler: false, ui: true, loop: true,
+  });
+  const [input, setInput] = useState("读 config.json 并跑一段脚本");
+  const [res, setRes] = useState<{ model: string; lines: string[] } | null>(null);
   const [mounted, setMounted] = useState<string[]>([]);
 
   const run = useCallback(async () => {
@@ -74,72 +90,111 @@ function PluginDemo() {
       ctx.provide("model", { name: "DeepSeek-V3", call: async (m: string) => `「DeepSeek-V3」收到「${m}」` });
     else
       ctx.provide("model", { name: "GPT-4o", call: async (m: string) => `「GPT-4o」handling「${m}」` });
-    if (toolsOn) ctx.provide("tools", { read: (p: string) => `content of ${p}` });
-    if (loopOn)
+    if (on.tools) ctx.provide("tools", { read: (p: string) => `content of ${p}` });
+    if (on.skills) ctx.provide("skills", { hint: () => "read-then-summarize" });
+    if (on.session) ctx.provide("sessions", { log: [] as string[] });
+    if (on.sandbox) ctx.provide("sandbox", { exec: (c: string) => `exit 0 · ${c}` });
+    if (on.storage) ctx.provide("storage", { save: (_: string) => true });
+    if (on.scheduler) ctx.provide("scheduler", { every: (_: string) => true });
+    if (on.ui) ctx.provide("ui", { render: (_: string) => true });
+    if (on.loop)
       ctx.on("run", async (x: string) => {
+        const lines: string[] = [];
         const reply = await ctx.get("model").call(x);
+        lines.push(`model → ${reply}`);
         const tools = ctx.get("tools");
-        const read = tools ? tools.read("config.json") : "tools 没挂，读不了文件";
-        return `${reply} ｜ 顺手 tools.read → ${read}`;
+        if (tools) {
+          lines.push(`tools 在场：tools.read('config.json') → ${tools.read("config.json")}`);
+          lines.push(ctx.get("sandbox")
+            ? "sandbox 在场：代码 / shell 类工具可在隔离环境执行"
+            : "缺 sandbox：代码 / shell 类工具被跳过（示意）");
+        } else {
+          lines.push("缺 tools：模型只能空手作答，读不了文件也调不了工具");
+        }
+        lines.push(ctx.get("skills") ? "skills 在场：注入了可复用技能提示" : "缺 skills：无额外技能提示");
+        lines.push(ctx.get("sessions") ? "session 在场：每步写进 append-only 日志，可回放 / 分叉" : "缺 session：本次运行不留痕，无法回放（示意）");
+        lines.push(ctx.get("storage") ? "storage 在场：结果已持久化，重启仍在" : "缺 storage：结果只在内存，重启即丢（示意）");
+        lines.push(ctx.get("scheduler") ? "scheduler 在场：可把后续任务排进后台队列" : "缺 scheduler：只能同步跑完这一次（示意）");
+        lines.push(ctx.get("ui") ? "ui 在场：结果渲染到界面" : "缺 ui：仅返回数据，无界面呈现");
+        return lines;
       });
-    const text = await ctx.emit("run", input);
-    setRes({ model: ctx.get("model").name, text: text ?? "没有插件在监听 run（agentLoop 没挂）" });
-    setMounted([`model: ${ctx.get("model").name}`, ...(toolsOn ? ["tools"] : []), ...(loopOn ? ["agentLoop"] : [])]);
-  }, [model, input, toolsOn, loopOn]);
+    const lines = await ctx.emit("run", input);
+    setRes({ model: ctx.get("model").name, lines: lines ?? ["没有插件在监听 run（agentLoop 没挂）"] });
+    setMounted([`model: ${ctx.get("model").name}`, ...PD_TOGGLES.filter((t) => on[t.key]).map((t) => t.label)]);
+  }, [model, input, on]);
 
-  useEffect(() => { run(); }, [model, toolsOn, loopOn]); // 任一插件变动就重算
+  useEffect(() => { run(); }, [model, on]); // 任一插件变动就重算
 
   return (
     <div className="plugin-demo">
-      <div className="pd-title">交互演示：model、tools、agentLoop 均为插件，可替换、可卸载</div>
+      <div className="pd-title">交互演示：model / tools / skills / session / sandbox / storage / scheduler / ui / agentLoop 均为插件，可替换、可卸载</div>
       <div className="pd-config">buildAgent(&#123; model: <span className="pd-val">&quot;{model}&quot;</span> &#125;)</div>
       <div className="pd-toggle">
         <span className="pd-tag2">model</span>
         <button className={model === "openai" ? "on" : ""} onClick={() => setModel("openai")}>openaiModel</button>
         <button className={model === "deepseek" ? "on" : ""} onClick={() => setModel("deepseek")}>deepseekModel</button>
       </div>
-      <div className="pd-toggle">
-        <span className="pd-tag2">其它</span>
-        <button className={toolsOn ? "on" : ""} onClick={() => setToolsOn((v) => !v)}>tools {toolsOn ? "已挂 ✓" : "已卸 ✗"}</button>
-        <button className={loopOn ? "on" : ""} onClick={() => setLoopOn((v) => !v)}>agentLoop {loopOn ? "已挂 ✓" : "已卸 ✗"}</button>
+      <div className="pd-grid">
+        {PD_TOGGLES.map((t) => (
+          <button
+            key={t.key}
+            className={`pd-cell${on[t.key] ? " on" : ""}`}
+            title={t.cat}
+            onClick={() => setOn((s) => ({ ...s, [t.key]: !s[t.key] }))}
+          >
+            {t.label} {on[t.key] ? "✓" : "✗"}
+          </button>
+        ))}
       </div>
       <div className="pd-chips">挂载的插件：{mounted.map((m) => <span key={m} className="chip">{m}</span>)}</div>
       <div className="pd-run">
         <input value={input} onChange={(e) => setInput(e.target.value)} />
         <button onClick={run}>run ▶</button>
       </div>
-      <div className={`pd-out ${model}`} key={res ? res.model + res.text : "empty"}>
+      <div className={`pd-out ${model}`} key={res ? res.model + res.lines.join("|") : "empty"}>
         {res ? (
           <>
             <span className="pd-badge">{res.model}</span>
             <span className="pd-arrow">← 现在挂着的 model 插件</span>
-            <div className="pd-line"><span className="pd-fn">run(</span><span className="pd-str">&quot;{input}&quot;</span><span className="pd-fn">)</span> = <b>{res.text}</b></div>
+            <div className="pd-line"><span className="pd-fn">run(</span><span className="pd-str">&quot;{input}&quot;</span><span className="pd-fn">)</span> ={res.lines.length > 1 ? "" : " "}
+              {res.lines.map((l, i) => <div key={i} className="pd-effline">{l}</div>)}
+            </div>
           </>
         ) : "点上面的按钮或 run ▶"}
       </div>
-      <div className="pd-note">替换 model、卸载 tools、卸载 agentLoop，输出都会随之变化，而内核一行都未改动。卸载 agentLoop 后无人监听 run，卸载 tools 后读文件那一步随之失效。这正是「万物皆插件、装卸对称」。</div>
+      <div className="pd-note">替换 model、勾掉某个插件，输出都会随之变化，而内核一行都未改动。卸载 agentLoop 后无人监听 run；卸载 tools 后读文件那一步失效；缺 sandbox 则代码类工具跳过，缺 storage 则结果不持久化。这些能力都挂在同一个 ctx 上，没有谁是特权核心。</div>
     </div>
   );
 }
 
+// 可挂载插件目录：类目对齐 dsh 官网「皆为插件」的清单，ctx 键取自架构文档；
+// 带 * 者官网列为插件类目、但架构文档未给确切键名，此处为教学示意。
+const CD_ALL = [
+  { id: "model", label: "modelPlugin", effect: "provide('model')", key: "ctx.llm", kind: "svc" },
+  { id: "tools", label: "toolsPlugin", effect: "provide('tools')", key: "ctx.tools", kind: "svc" },
+  { id: "skills", label: "skillsPlugin", effect: "provide('skills')", key: "ctx.skills*", kind: "svc" },
+  { id: "session", label: "sessionPlugin", effect: "provide('sessions')", key: "ctx.sessions", kind: "svc" },
+  { id: "sandbox", label: "sandboxPlugin", effect: "provide('sandbox')", key: "ctx.sandbox", kind: "svc" },
+  { id: "storage", label: "storagePlugin", effect: "provide('storage')", key: "ctx.storage*", kind: "svc" },
+  { id: "scheduler", label: "schedulerPlugin", effect: "provide('scheduler')", key: "ctx.jobs", kind: "svc" },
+  { id: "ui", label: "uiPlugin", effect: "provide('ui')", key: "ctx.ui*", kind: "svc" },
+  { id: "loop", label: "agentLoopPlugin", effect: "on('run')", key: "ctx.agentLoop", kind: "ev" },
+];
+
 function CordisDemo() {
-  const ALL = [
-    { id: "model", label: "modelPlugin", effect: "provide('model')" },
-    { id: "tools", label: "toolsPlugin", effect: "provide('tools')" },
-    { id: "loop", label: "agentLoopPlugin", effect: "on('run')" },
-  ];
+  const ALL = CD_ALL;
   const [mounted, setMounted] = useState<string[]>(["model", "loop"]);
   const [log, setLog] = useState<string[]>(["初始：挂了 modelPlugin、agentLoopPlugin"]);
-  const [out, setOut] = useState<string | null>(null);
+  const [out, setOut] = useState<string[] | null>(null);
 
-  const services = mounted.filter((m) => m !== "loop"); // model / tools 提供服务；loop 只挂监听
-  const runListeners = mounted.includes("loop") ? ["agentLoopPlugin"] : [];
+  const services = mounted.filter((m) => ALL.find((x) => x.id === m)!.kind === "svc");
+  const runListeners = mounted.filter((m) => ALL.find((x) => x.id === m)!.kind === "ev").map((m) => ALL.find((x) => x.id === m)!.label);
 
   const mount = (id: string) => {
     if (mounted.includes(id)) return;
     const p = ALL.find((x) => x.id === id)!;
     setMounted([...mounted, id]);
-    setLog((l) => [...l, `use(${p.label})：注册 ${p.effect}`]);
+    setLog((l) => [...l, `use(${p.label})：注册 ${p.effect} → ${p.key}`]);
     setOut(null);
   };
   const unmount = (id: string) => {
@@ -149,10 +204,19 @@ function CordisDemo() {
     setOut(null);
   };
   const emitRun = () => {
-    if (!mounted.includes("loop")) return setOut("emit('run') → 没有插件在监听 run，什么都没发生");
-    if (!mounted.includes("model")) return setOut("emit('run') → agentLoop 想调 model，但 model 服务没挂，报错");
-    const t = mounted.includes("tools");
-    setOut(`emit('run') → agentLoop 触发 → 调 model 服务${t ? "，并用 tools 读文件" : "（tools 没挂，跳过读文件）"} → 返回结果`);
+    if (!mounted.includes("loop")) return setOut(["emit('run') → 没有插件在监听 run，什么都没发生"]);
+    if (!mounted.includes("model")) return setOut(["emit('run') → agentLoop 想调 model，但 model 服务没挂，报错"]);
+    const has = (id: string) => mounted.includes(id);
+    const lines = ["emit('run') → agentLoop 触发 → 调 model 服务"];
+    lines.push(has("tools")
+      ? (has("sandbox") ? "· tools 在场：可读文件，代码 / shell 类工具在 sandbox 里执行" : "· tools 在场：可读文件；缺 sandbox，代码 / shell 类工具跳过（示意）")
+      : "· 缺 tools：模型只能空手作答，跳过读文件");
+    lines.push(has("skills") ? "· skills 在场：注入可复用技能提示" : "· 缺 skills：无额外技能提示");
+    lines.push(has("session") ? "· session 在场：每步写进 append-only 日志，可回放 / 分叉" : "· 缺 session：不留痕，无法回放（示意）");
+    lines.push(has("storage") ? "· storage 在场：结果持久化，重启仍在" : "· 缺 storage：结果只在内存，重启即丢（示意）");
+    lines.push(has("scheduler") ? "· scheduler 在场：可排后台 / 定时任务" : "· 缺 scheduler：只能同步跑完这一次（示意）");
+    lines.push(has("ui") ? "· ui 在场：结果渲染到界面" : "· 缺 ui：仅返回数据，无界面呈现");
+    setOut(lines);
   };
 
   return (
@@ -163,13 +227,13 @@ function CordisDemo() {
           <div className="cd-h">可挂载插件</div>
           {ALL.map((p) => (
             <button key={p.id} className="cd-mount" disabled={mounted.includes(p.id)} onClick={() => mount(p.id)}>
-              + {p.label}
+              + {p.label} <span className="cd-key">{p.key}</span>
             </button>
           ))}
         </div>
         <div className="cd-box">
           <div className="cd-h">共享 ctx</div>
-          <div className="cd-row"><span className="cd-k">services</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{s}</span>) : <span className="cd-empty">空</span>}</div>
+          <div className="cd-row"><span className="cd-k">services</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{ALL.find((x) => x.id === s)!.label}</span>) : <span className="cd-empty">空</span>}</div>
           <div className="cd-row"><span className="cd-k">on(run)</span>{runListeners.length ? runListeners.map((s) => <span key={s} className="cd-chip ev">{s}</span>) : <span className="cd-empty">空</span>}</div>
           <div className="cd-h cd-h2">已挂插件</div>
           <div className="cd-row">
@@ -180,7 +244,8 @@ function CordisDemo() {
           </div>
         </div>
       </div>
-      <div className="cd-run"><button onClick={emitRun}>emit(&apos;run&apos;) ▶</button>{out && <span className="cd-outtext">{out}</span>}</div>
+      <div className="cd-run"><button onClick={emitRun}>emit(&apos;run&apos;) ▶</button></div>
+      {out && <div className="cd-outbox">{out.map((l, i) => <div key={i} className="cd-outline">{l}</div>)}</div>}
       <div className="cd-log">
         <div className="cd-h">操作日志（副作用的登记与回滚）</div>
         {log.map((l, i) => <div key={i} className="cd-logline">{l}</div>)}
