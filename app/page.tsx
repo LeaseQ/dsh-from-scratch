@@ -157,7 +157,7 @@ function CordisDemo() {
 
   return (
     <div className="cordis-demo">
-      <div className="pd-title">Cordis 内核：往 ctx 上挂插件，看服务、事件、副作用怎么变</div>
+      <div className="pd-title">挂上 / 卸下 / 换掉这些能力，再点 emit('run')，看会发生什么</div>
       <div className="cd-cols">
         <div className="cd-box">
           <div className="cd-h">可挂载插件</div>
@@ -185,7 +185,7 @@ function CordisDemo() {
         <div className="cd-h">操作日志（副作用的登记与回滚）</div>
         {log.map((l, i) => <div key={i} className="cd-logline">{l}</div>)}
       </div>
-      <div className="pd-note">挂一个插件，它的服务或监听就出现在 ctx 里；卸载它，注册被逐条回滚。这就是 Cordis 的三样东西：服务、事件、可撤销的副作用。</div>
+      <div className="pd-note">挂上一个能力，它提供的东西就出现在共享区里；卸掉它，之前登记的全都被逐条撤销。留意这个「挂上就有、卸掉就没」的手感，等下我们会告诉你它的正经名字。</div>
     </div>
   );
 }
@@ -234,9 +234,12 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
     const file = step.file;
     const idx = steps.indexOf(step);
     const lines: { ln: string; isNew: boolean }[] = [];
+    const seen = new Set<string>();
     for (let i = 0; i <= idx; i++) {
       const s = steps[i];
       if (s.file !== file) continue;
+      if (seen.has(s.code)) continue; // 同一 region 被多个 step 复用时只累积一次
+      seen.add(s.code);
       s.code.split("\n").forEach((ln: string) => lines.push({ ln, isNew: s.id === activeId }));
     }
     return { file, lines };
@@ -293,8 +296,8 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
             <span className="step-num">STEP {i} · {s.file}</span>
             <h2>{s.title}</h2>
             <div dangerouslySetInnerHTML={{ __html: s.prose }} />
-            {s.id === "k3" && <CordisDemo />}
-            {s.id === "k4" && <PluginDemo />}
+            {s.id === "k0" && <CordisDemo />}
+            {s.id === "k5" && <PluginDemo />}
           </article>
         ))}
         {onNext && (

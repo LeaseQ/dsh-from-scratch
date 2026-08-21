@@ -23,12 +23,21 @@ export const steps = [
     id: "k0",
     file: "kernel.ts",
     region: "k0",
-    title: "先想清楚：我们要造一个能跑的 agent",
+    title: "先别急着记名字，先把一个 agent 拼出来玩玩",
     prose:
-      "<p>目标很朴素：造一个能跑起来的 agent。它得能调模型、能用工具、能一轮轮往下走。</p>" +
-      "<p>最直接的写法是写一个主循环，把模型、工具都塞进去。能跑，但想加个能力、换个模型、把某样东西拆掉，都得回去改这段循环。东西一多，它就越来越难动。</p>" +
-      "<p>dsh 换了个思路：不写这个写死的主循环，而是把每个能力都做成一个插件，挂在一个共享的 <code>ctx</code> 上，最后用配置把它们拼起来。连 agent loop 自己都是一个插件。</p>" +
-      "<p>这套插件机制有个名字，叫 <b>Cordis</b>，是 dsh 底下的框架层。它规定了插件怎么往共享的 <code>ctx</code> 上贡献三样东西：服务（像 model、tools）、事件、还有可撤销的副作用。这一章，我们就把这个内核亲手写一遍。</p>" +
+      "<p>我们要拼一个能干活的 agent。它得有几样能力：一个负责说话（model），一个负责查东西（tools），还有一段负责在 run 的时候把整件事推着往下走的逻辑。</p>" +
+      "<p>下面这个框可以直接点。这些能力你都能随手挂上、卸下、或者换掉，挂好之后点 <code>emit('run')</code>，看会发生什么。先别管它们背后叫什么，挂挂卸卸、点几次 run，凭感觉玩一会儿就好。</p>" +
+      "<p>玩的时候留意一件事：卸掉某个能力，跟它有关的那部分就没了；再挂回来，又回来了。记住这个手感，等下我们再回过头，给它一个正经的名字。</p>",
+  },
+  {
+    id: "k1",
+    file: "kernel.ts",
+    region: "k0",
+    title: "揭晓：你刚才玩的这套东西，叫 Cordis",
+    prose:
+      "<p>🎉 先恭喜一下。你刚才把能力挂上、卸下、换掉，还点了 <code>emit('run')</code>。这件看起来挺随意的事，其实有个正经名字，叫 <b>Cordis</b>，是 dsh 底下的框架层。</p>" +
+      "<p>说正式一点：每个能力都是一个插件。插件之间不互相 import，而是往一个共享的 <code>ctx</code> 上贡献三样东西：服务（像 model、tools）、事件（<code>on</code> / <code>emit</code>），还有可撤销的副作用（卸载时自动回滚，就是你刚才那个「卸掉就没了、挂回又回来」的手感）。</p>" +
+      "<p>dsh 文档里有句话我挺喜欢：没有一个需要打补丁的特权核心。连 agent loop 自己都是插件，没有谁是改不动的中心。</p>" +
       "<p>顺手和 pi 比一下，能看清 dsh 特别在哪：</p>" +
       "<table class='compare'><thead><tr><th>维度</th><th>pi</th><th>dsh</th></tr></thead><tbody>" +
       "<tr><td>核心</td><td>写死的主循环</td><td class='hi'>插件内核，没有特权核心</td></tr>" +
@@ -36,47 +45,44 @@ export const steps = [
       "<tr><td>agent loop 本身</td><td>就是那个主循环</td><td class='hi'>也是一个插件，可换</td></tr>" +
       "<tr><td>怎么换装</td><td>改代码</td><td class='hi'>改配置，源码不动</td></tr>" +
       "</tbody></table>" +
-      "<p>dsh 文档里那句话我挺喜欢：没有一个需要打补丁的特权内核。下面写的 nano-dsh，就是把这套机制用极简代码复刻一遍。</p>" +
+      "<p>知道了名字，接下来就把刚才玩的那点手感，对到内核代码里去看。右边先给你看这个文件的开头，说的正是这件事。</p>" +
       "<p class='cite'>参考：<a href='https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/master/docs/architecture.md' target='_blank' rel='noreferrer'>dsh 架构文档 · Cordis 章节</a></p>",
-  },
-  {
-    id: "k1",
-    file: "kernel.ts",
-    region: "k1",
-    title: "共享 ctx：先有个地方能挂插件",
-    prose:
-      "<p>插件多了，得先有个地方挂它们。这个地方就是内核唯一的东西：共享的 <code>ctx</code>。</p>" +
-      "<p>插件不是被 import 进来，而是往 <code>ctx</code> 上挂服务，像这样：<code>provide('model', ...)</code>。这样谁想用 model，问 <code>ctx</code> 要就行，不用知道它是谁提供的。</p>" +
-      "<p>注意 <code>provide</code> 最后那几行，它存服务的同时还记了一手「怎么撤销」：卸载时把服务恢复回上一个。就这一手，插件才既装得上、也拆得干净。后面你会看到它有多值。</p>",
   },
   {
     id: "k2",
     file: "kernel.ts",
-    region: "k2",
-    title: "事件总线：插件之间不点名，用事件说话",
+    region: "k1",
+    title: "由表及里（一）：ctx 与 provide，挂上一个服务",
     prose:
-      "<p>能挂服务还不够。插件之间得能互相触发，又不能互相点名写死，不然又绕回到那个改来改去的主循环了。</p>" +
-      "<p>办法是走事件：<code>on('run', ...)</code> 订阅，<code>emit('run', ...)</code> 触发。谁触发的、谁在听，彼此都不用知道。</p>" +
-      "<p><code>on</code> 会还给你一个 <code>dispose</code>，也一并记进了「怎么撤销」。插件一卸，它挂的监听自己就没了，不留尾巴。</p>",
+      "<p>先看你刚才挂的 model、tools。落到代码里，它们就是往共享的 <code>ctx</code> 上 <code>provide</code> 一个服务。谁想用 model，问 <code>ctx</code> 要就行，不用知道是谁提供的。</p>" +
+      "<p>注意 <code>provide</code> 最后那几行：它存服务的同时，还顺手记了「怎么撤销」，卸载时把服务恢复回上一个。你刚才「卸掉就没了」的那半个手感，就是这几行给的。</p>",
   },
   {
     id: "k3",
     file: "kernel.ts",
-    region: "k3",
-    title: "use()：装得上，也拆得干净",
+    region: "k2",
+    title: "由表及里（二）：事件 on / emit，插件之间不点名",
     prose:
-      "<p>服务和事件都能挂了，还差最后一步：能整块地装，也能整块地卸。<code>use(plugin)</code> 就是来收口的。</p>" +
-      "<p>挂的时候，把这个插件干的所有事收进一个作用域，还你一个 <code>dispose</code>；一调用，就挨个撤回去：服务恢复、监听摘掉。</p>" +
-      "<p>到这儿，装能力和卸能力就对上了，完全对称。dsh 说的「插件卸载时注册自动回滚」，就是这个。下面这个框可以直接点，挂一个卸一个，看 ctx 怎么变。</p>",
+      "<p>你点的那个 <code>emit('run')</code> 就在这儿。插件之间得能互相触发，又不能互相点名写死，不然又绕回那个改来改去的主循环了。</p>" +
+      "<p>办法是走事件：<code>on('run', ...)</code> 订阅，<code>emit('run', ...)</code> 触发。谁触发的、谁在听，彼此都不用知道。<code>on</code> 还会还你一个 <code>dispose</code>，同样记进了「怎么撤销」。</p>",
   },
   {
     id: "k4",
+    file: "kernel.ts",
+    region: "k3",
+    title: "由表及里（三）：use，装得上也拆得干净",
+    prose:
+      "<p>服务和事件都能挂了，还差最后一步：能整块地装，也能整块地卸。<code>use(plugin)</code> 就是来收口的。</p>" +
+      "<p>挂的时候，把这个插件干的所有事收进一个作用域，还你一个 <code>dispose</code>；一调用，就挨个撤回去：服务恢复、监听摘掉。你刚才「挂回又回来、卸掉就干净」的完整手感，到这里就对称了。dsh 说的「插件卸载时注册自动回滚」，就是这个。</p>",
+  },
+  {
+    id: "k5",
     file: "compose.ts",
     region: "k4",
-    title: "配置即组装：把插件拼成一个 agent",
+    title: "由表及里（四）：用配置把插件拼成一个 agent",
     prose:
-      "<p>内核齐了，现在把开头说的那个 agent 拼出来。每个能力都写成插件：<code>openaiModel</code>、<code>deepseekModel</code>、<code>tools</code>，连 agent loop 也就是个监听 <code>run</code> 的插件而已。</p>" +
-      "<p><code>buildAgent</code> 里换一个 model，整条链路跟着换，内核、loop、tools 一个字都不用动。这就是开头想要的：加能力、换模型、拆东西，都只改配置。下面这个框你可以直接点，切换 model 看输出怎么变。</p>",
+      "<p>内核齐了，现在把开头你玩的那个 agent 正经拼出来。每个能力都写成插件：<code>openaiModel</code>、<code>deepseekModel</code>、<code>tools</code>，连 agent loop 也就是个监听 <code>run</code> 的插件而已。</p>" +
+      "<p><code>buildAgent</code> 里换一个 model，整条链路跟着换，内核、loop、tools 一个字都不用动。这就是开头那种「随手换、随手拆」背后的东西：加能力、换模型、拆东西，都只改配置。下面这个框你可以直接点，切换 model 看输出怎么变。</p>",
   },
 
   /* ========== 第二模块：可追溯事件流 ========== */
