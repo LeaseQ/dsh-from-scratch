@@ -216,9 +216,8 @@ export default function Page() {
           <div className="hero">
             <h1>{T.meta.subtitle}</h1>
             <p className="hero-sub">{T.meta.tagline}</p>
-            <p className="hero-intro">{T.meta.intro}</p>
-            <div className="hero-hint">往下读，右侧代码会跟着补全。读到最后，切到「Trace 回放」，把一次真实运行一步步放一遍。</div>
           </div>
+          <section className="preface" dangerouslySetInnerHTML={{ __html: T.meta.preface }} />
           {STEPS.map((s, i) => (
             <article key={s.id} className={`step${s.id === activeId ? " active" : ""}`} data-id={s.id}>
               <span className="step-num">STEP {i} · {s.file}</span>

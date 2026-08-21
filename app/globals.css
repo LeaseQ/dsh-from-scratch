@@ -208,3 +208,12 @@ code { font-family: var(--mono); font-size: 0.85em; background: #efece6; padding
 .pd-line b { color: #ffd479; font-weight: 600; }
 .pd-out .pd-fn { color: #8aa9ff; }
 .pd-out .pd-str { color: #7ee2b8; }
+
+/* ---------- 先导 preface ---------- */
+.preface { padding-bottom: 30px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.preface p { font-size: 16px; color: #423e37; margin-bottom: 15px; line-height: 1.9; }
+.preface p b { color: #17150f; font-weight: 700; }
+.preface a { color: var(--accent); }
+.pf-quote { font-size: 16px; color: var(--txt-dim); border-left: 3px solid var(--line-2); padding: 4px 0 4px 16px; margin: 4px 0 22px; font-style: italic; }
+.pf-quote span { display: block; font-style: normal; font-size: 13px; color: var(--txt-faint); margin-top: 5px; }
+.pf-note { font-size: 13.5px; color: var(--txt-faint) !important; background: var(--panel-2); border-radius: 8px; padding: 11px 15px; line-height: 1.7 !important; }
