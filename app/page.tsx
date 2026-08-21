@@ -1,10 +1,9 @@
 "use client";
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { TUTORIAL } from "./generated/content";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const T: any = TUTORIAL;
-const STEPS: any[] = T.steps;
 const TR: any = T.trace;
 const EVENTS: any[] = TR.events;
 const N = EVENTS.length;
@@ -191,8 +190,15 @@ function CordisDemo() {
   );
 }
 
-export default function Page() {
-  const [activeId, setActiveId] = useState(STEPS[0].id);
+/* ---------- Chapter：一整章的文章列表 + 右侧 stage ---------- */
+function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
+  steps: any[];
+  hasTrace: boolean;
+  onNext?: () => void;
+  nextLabel?: string;
+  onProgress?: (pct: number) => void;
+}) {
+  const [activeId, setActiveId] = useState(steps[0].id);
   const [tab, setTab] = useState<"code" | "trace">("code");
   const [pos, setPos] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -224,25 +230,29 @@ export default function Page() {
 
   /* 代码累积（同文件按顺序拼接，当前 step 高亮） */
   const codeView = useMemo(() => {
-    const step = STEPS.find((s) => s.id === activeId);
+    const step = steps.find((s) => s.id === activeId)!;
     const file = step.file;
-    const idx = STEPS.indexOf(step);
+    const idx = steps.indexOf(step);
     const lines: { ln: string; isNew: boolean }[] = [];
     for (let i = 0; i <= idx; i++) {
-      const s = STEPS[i];
+      const s = steps[i];
       if (s.file !== file) continue;
       s.code.split("\n").forEach((ln: string) => lines.push({ ln, isNew: s.id === activeId }));
     }
     return { file, lines };
-  }, [activeId]);
+  }, [activeId, steps]);
 
   useLayoutEffect(() => {
     const first = codeScrollRef.current?.querySelector<HTMLElement>(".is-new");
     if (first && codeScrollRef.current) codeScrollRef.current.scrollTop = Math.max(0, first.offsetTop - 56);
   }, [codeView]);
 
-  const activeIdx = STEPS.findIndex((s) => s.id === activeId);
-  const activeChapter = String(activeId).startsWith("k") ? "chapter1" : "chapter2";
+  const activeIdx = steps.findIndex((s) => s.id === activeId);
+
+  /* 进度条：按当前 active step 在本章内的位置算 */
+  useEffect(() => {
+    onProgress?.(steps.length > 1 ? (activeIdx / (steps.length - 1)) * 100 : 100);
+  }, [activeIdx, steps, onProgress]);
 
   /* Trace 播放 */
   useEffect(() => {
@@ -276,75 +286,52 @@ export default function Page() {
   const msgs = deriveMessages(EVENTS.slice(0, pos));
 
   return (
-    <>
-      <header className="topbar">
-        <div className="brand">
-          <span className="logo">🐳</span>
-          <div className="brand-text">
-            <strong>nano-dsh</strong>
-            <span className="brand-sub">从零手写 dsh</span>
+    <main className="layout">
+      <section className="article" ref={articleRef}>
+        {steps.map((s, i) => (
+          <article className={`step${s.id === activeId ? " active" : ""}`} data-id={s.id} key={s.id}>
+            <span className="step-num">STEP {i} · {s.file}</span>
+            <h2>{s.title}</h2>
+            <div dangerouslySetInnerHTML={{ __html: s.prose }} />
+            {s.id === "k3" && <CordisDemo />}
+            {s.id === "k4" && <PluginDemo />}
+          </article>
+        ))}
+        {onNext && (
+          <div className="chapter-next">
+            <button className="next-btn" onClick={onNext}>{nextLabel ?? "下一章 →"}</button>
           </div>
-        </div>
-        <nav className="chapter-nav">
-          <a href="#preface">先导</a>
-          <a href="#chapter1" className={activeChapter === "chapter1" ? "on" : ""}>万物皆插件</a>
-          <a href="#chapter2" className={activeChapter === "chapter2" ? "on" : ""}>可追溯事件流</a>
-        </nav>
-        <div className="topbar-right">
-          <a className="ghost-btn" href={T.meta.repo} target="_blank" rel="noreferrer">dsh 源码 ↗</a>
-        </div>
-        <div className="progress-rail">
-          <div className="progress-fill" style={{ width: `${(activeIdx / (STEPS.length - 1)) * 100}%` }} />
-        </div>
-      </header>
+        )}
+        <footer className="article-foot">
+          <p>本页是一个<b>数据驱动的互动教学模板</b>：正文来自 <code>content/steps.mjs</code>，右侧代码切片由构建脚本从 <code>nano-src/*.ts</code> 真实源码注入。</p>
+          <p className="muted">nano-dsh 为教学重写的极简版，概念对齐 dsh 官方架构文档，非其真实源码。</p>
+        </footer>
+      </section>
 
-      <main className="layout">
-        <section className="article" ref={articleRef}>
-          <div className="hero">
-            <h1>{T.meta.subtitle}</h1>
-            <p className="hero-sub">{T.meta.tagline}</p>
-          </div>
-          <section className="preface" id="preface" dangerouslySetInnerHTML={{ __html: T.meta.preface }} />
-          {STEPS.map((s, i) => (
-            <Fragment key={s.id}>
-              {s.id === "k0" && <h2 className="chapter-head" id="chapter1"><span>第一章</span>万物皆插件</h2>}
-              {s.id === "s0" && <h2 className="chapter-head" id="chapter2"><span>第二章</span>可追溯事件流</h2>}
-              <article className={`step${s.id === activeId ? " active" : ""}`} data-id={s.id}>
-                <span className="step-num">STEP {i} · {s.file}</span>
-                <h2>{s.title}</h2>
-                <div dangerouslySetInnerHTML={{ __html: s.prose }} />
-                {s.id === "k3" && <CordisDemo />}
-                {s.id === "k4" && <PluginDemo />}
-              </article>
-            </Fragment>
-          ))}
-          <footer className="article-foot">
-            <p>本页是一个<b>数据驱动的互动教学模板</b>：正文来自 <code>content/steps.mjs</code>，右侧代码切片由构建脚本从 <code>nano-src/*.ts</code> 真实源码注入。</p>
-            <p className="muted">nano-dsh 为教学重写的极简版，概念对齐 dsh 官方架构文档，非其真实源码。</p>
-          </footer>
-        </section>
-
-        <section className="stage">
-          <div className="stage-tabs">
-            <button className={`tab${tab === "code" ? " active" : ""}`} onClick={() => setTab("code")}>
-              <span className="dot" /> 代码 <span className="tab-file">{codeView.file}</span>
-            </button>
+      <section className="stage">
+        <div className="stage-tabs">
+          <button className={`tab${tab === "code" ? " active" : ""}`} onClick={() => setTab("code")}>
+            <span className="dot" /> 代码 <span className="tab-file">{codeView.file}</span>
+          </button>
+          {hasTrace && (
             <button className={`tab${tab === "trace" ? " active" : ""}`} onClick={() => setTab("trace")}>▶ Trace 回放</button>
-          </div>
+          )}
+        </div>
 
-          <div className={`pane${tab === "code" ? " active" : ""}`}>
-            <div className="editor">
-              <div className="code-scroll" ref={codeScrollRef}>
-                {codeView.lines.map((l, i) => (
-                  <div key={i} className={`code-line${l.isNew ? " is-new" : ""}`}>
-                    <span className="ln">{i + 1}</span>
-                    <span className="lc" dangerouslySetInnerHTML={{ __html: highlight(l.ln) }} />
-                  </div>
-                ))}
-              </div>
+        <div className={`pane${tab === "code" ? " active" : ""}`}>
+          <div className="editor">
+            <div className="code-scroll" ref={codeScrollRef}>
+              {codeView.lines.map((l, i) => (
+                <div key={i} className={`code-line${l.isNew ? " is-new" : ""}`}>
+                  <span className="ln">{i + 1}</span>
+                  <span className="lc" dangerouslySetInnerHTML={{ __html: highlight(l.ln) }} />
+                </div>
+              ))}
             </div>
           </div>
+        </div>
 
+        {hasTrace && (
           <div className={`pane${tab === "trace" ? " active" : ""}`}>
             <div className="trace-scenario">🎬 录制场景：<b>{TR.scenario}</b>（离线静态数据，回放不发任何模型请求）</div>
             <div className="trace-body">
@@ -408,8 +395,103 @@ export default function Page() {
             </div>
             <div className="trace-note">{pos > 0 ? EVENTS[pos - 1].note : "点「播放」或「下一步」，看事件如何一条条落进日志、模型历史又是怎么从日志算出来的。"}</div>
           </div>
-        </section>
-      </main>
+        )}
+      </section>
+    </main>
+  );
+}
+
+/* ---------- Page：hash 切屏 ---------- */
+type Screen = "preface" | "chapter1" | "chapter2";
+const SCREENS: Screen[] = ["preface", "chapter1", "chapter2"];
+
+function readHash(): Screen {
+  if (typeof window === "undefined") return "preface";
+  const h = window.location.hash.replace(/^#/, "") as Screen;
+  return SCREENS.includes(h) ? h : "preface";
+}
+
+export default function Page() {
+  const [screen, setScreen] = useState<Screen>("preface");
+  const [progress, setProgress] = useState(0);
+
+  const chapter1Steps = useMemo(() => T.steps.filter((s: any) => String(s.id).startsWith("k")), []);
+  const chapter2Steps = useMemo(() => T.steps.filter((s: any) => String(s.id).startsWith("s")), []);
+
+  /* 初始读 hash + 监听 hashchange */
+  useEffect(() => {
+    setScreen(readHash());
+    const onHash = () => setScreen(readHash());
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  const go = useCallback((s: Screen) => {
+    if (typeof window !== "undefined") {
+      history.pushState(null, "", "#" + s);
+      window.scrollTo(0, 0);
+    }
+    setProgress(0);
+    setScreen(s);
+  }, []);
+
+  const onProgress = useCallback((pct: number) => setProgress(pct), []);
+
+  return (
+    <>
+      <header className="topbar">
+        <div className="brand" role="button" onClick={() => go("preface")} style={{ cursor: "pointer" }}>
+          <span className="logo">🐳</span>
+          <div className="brand-text">
+            <strong>nano-dsh</strong>
+            <span className="brand-sub">从零手写 dsh</span>
+          </div>
+        </div>
+        <nav className="chapter-nav">
+          <a onClick={() => go("preface")} className={screen === "preface" ? "on" : ""}>先导</a>
+          <a onClick={() => go("chapter1")} className={screen === "chapter1" ? "on" : ""}>万物皆插件</a>
+          <a onClick={() => go("chapter2")} className={screen === "chapter2" ? "on" : ""}>可追溯事件流</a>
+        </nav>
+        <div className="topbar-right">
+          <a className="ghost-btn" href={T.meta.repo} target="_blank" rel="noreferrer">dsh 源码 ↗</a>
+        </div>
+        <div className="progress-rail">
+          <div className="progress-fill" style={{ width: `${screen === "preface" ? 0 : progress}%` }} />
+        </div>
+      </header>
+
+      {screen === "preface" && (
+        <main className="screen-preface" key="preface">
+          <div className="hero">
+            <h1>{T.meta.subtitle}</h1>
+            <p className="hero-sub">{T.meta.tagline}</p>
+          </div>
+          <section className="preface" dangerouslySetInnerHTML={{ __html: T.meta.preface }} />
+          <div className="chapter-next">
+            <button className="next-btn" onClick={() => go("chapter1")}>进入第一章 · 万物皆插件 →</button>
+          </div>
+        </main>
+      )}
+
+      {screen === "chapter1" && (
+        <Chapter
+          key="chapter1"
+          steps={chapter1Steps}
+          hasTrace={false}
+          onNext={() => go("chapter2")}
+          nextLabel="下一章 · 可追溯事件流 →"
+          onProgress={onProgress}
+        />
+      )}
+
+      {screen === "chapter2" && (
+        <Chapter
+          key="chapter2"
+          steps={chapter2Steps}
+          hasTrace={true}
+          onProgress={onProgress}
+        />
+      )}
     </>
   );
 }
