@@ -92,9 +92,10 @@ export const steps = [
     region: "s0",
     title: "接着上一章：能跑起来，还得能看清、能回头",
     prose:
-      "<p>上一章内核已经能把插件拼起来跑一个 agent 了。但只是跑起来还不够：它一步步在干嘛，你其实看不见。</p>" +
-      "<p>而 agent 又老是要中断续跑、回看某一步、从中间分叉试别的走法。想做到这些，前提是把一次运行完整记下来。这就是 dsh 的第二件事：可追溯。</p>" +
-      "<p>它的做法是：一次运行里发生的一切，都记进一条只增不改的日志，模型看到的历史是从这条日志算出来的，不另存。文档里的规矩是：模型能看到的，必须先写进日志。我们先把事件类型定出来。</p>",
+      "<p>上一章内核已经能把插件拼起来跑一个 agent 了。但只是跑起来还不够：它一步步在干嘛，你其实<b>看不见</b>。</p>" +
+      "<p>而 agent 又老是要<b>中断续跑</b>、<b>回看某一步</b>、<b>从中间分叉</b>试别的走法。想做到这些，前提是把一次运行完整记下来。这就是 dsh 的第二件事：<b>可追溯</b>。</p>" +
+      "<p>它的做法是：一次运行里发生的一切，都记进一条<b>只增不改</b>的日志，模型看到的历史由这条日志<b>算出来</b>，不另存一份。我们先把事件类型 <code>SessionEvent</code> 定出来。</p>" +
+      "<div class='callout tip'><span class='c-h'>这一章的主线</span>只有一条<b>唯一真相源</b>：append-only 的事件日志。<code>replay</code>、<code>fork</code>、模型历史，全是这条日志的不同<b>读法</b>，而不是各存各的状态。守住这点，可观测与可回溯就是白送的。</div>",
   },
   {
     id: "s1",
@@ -102,8 +103,9 @@ export const steps = [
     region: "s1",
     title: "定义 SessionEvent",
     prose:
-      "<p>把一轮对话拆成一串事件：开一轮、用户说话、模型流式吐字、模型说完、调工具、工具返回、收一轮。</p>" +
-      "<p>单独提一句 <code>assistant/chunk</code>：它是流式的碎片，只拿来回放和显示，不进模型历史。后面 replay 能一个字一个字重演，就靠它。</p>",
+      "<p>把一轮对话拆成一串事件：<b>开一轮</b> <code>turn/start</code>、<b>用户说话</b> <code>user/message</code>、<b>模型流式吐字</b> <code>assistant/chunk</code>、<b>模型说完</b> <code>assistant/message</code>、<b>调工具</b> <code>tool/call</code>、<b>工具返回</b> <code>tool/result</code>、<b>收一轮</b> <code>turn/end</code>。每种事件都是 <code>SessionEvent</code> 联合类型里的一支。</p>" +
+      "<p>单独提一句 <code>assistant/chunk</code>：它是流式的<b>碎片</b>，只拿来回放和显示，<b>不进模型历史</b>。后面 <code>replay</code> 能一个字一个字重演，就靠它。</p>" +
+      "<div class='callout warn'><span class='c-h'>易踩的坑</span>别把 <code>chunk</code> 也塞进模型历史。碎片本就是 <code>assistant/message</code> 的中间态，两者都进就会让模型看到<b>重复的半截文本</b>。区分「进历史」和「只回放」这两类事件，是这一层的第一道纪律。</div>",
   },
   {
     id: "s2",
@@ -111,8 +113,9 @@ export const steps = [
     region: "s2",
     title: "append-only 日志",
     prose:
-      "<p>日志就干两件事：往后加、往回读。每条进来自动编个号 <code>seq</code>，没有「改第几条」这种方法。</p>" +
-      "<p><code>slice(uptoSeq)</code> 拿「到某一步为止」的所有事件，等下 replay 和 fork 都要用。</p>",
+      "<p>日志 <code>SessionLog</code> 只干两件事：往后<b>加</b>（<code>append</code>）、往回<b>读</b>（<code>slice</code>）。每条进来自动编个号 <code>seq</code>，<b>没有</b>「改第几条」这种方法，也没有删除。</p>" +
+      "<p><code>slice(uptoSeq)</code> 拿「到某一步为止」的所有事件，等下 <code>replay</code> 和 <code>fork</code> 都要用它来定位某个时间点。</p>" +
+      "<div class='callout tip'><span class='c-h'>为什么只增不改</span>一旦允许<b>原地修改</b>历史，「第 3 步时模型看到了什么」就再也说不清了。只增不改换来的是：任意 <code>seq</code> 处的状态都<b>可复现</b>、可比对。这也是 <code>append</code> 只接收数据、由日志自己派发 <code>seq</code> 的原因，编号权不交给调用方。</div>",
   },
   {
     id: "s3",
@@ -120,8 +123,16 @@ export const steps = [
     region: "s3",
     title: "deriveMessages：从日志算出模型历史",
     prose:
-      "<p>重点来了。模型看到的历史不是另存一份，而是把日志从头过一遍算出来，dsh 里这个函数叫 <code>deriveMessages</code>。</p>" +
-      "<p>谁进历史谁不进，一句话：<code>user/message</code>、<code>assistant/message</code>、<code>tool/result</code> 进；<code>assistant/chunk</code>、<code>turn/*</code>、<code>tool/call</code> 不进，它们只管回放和显示。</p>",
+      "<p>重点来了。模型看到的历史<b>不是另存一份</b>，而是把日志从头过一遍<b>算</b>出来，dsh 里这个函数叫 <code>deriveMessages</code>。</p>" +
+      "<p>谁进历史谁不进，一句话：<code>user/message</code>、<code>assistant/message</code>、<code>tool/result</code> <b>进</b>；<code>assistant/chunk</code>、<code>turn/*</code>、<code>tool/call</code> <b>不进</b>，它们只管回放和显示。</p>" +
+      "<div class='flow'>" +
+      "<div class='flow-title'>数据流：日志是源头，历史是投影</div>" +
+      "<div class='flow-row'><span class='flow-node x'>agent 运行</span><span class='flow-arrow'>→ append →</span><span class='flow-node k'>SessionLog（只增不改）</span></div>" +
+      "<div class='flow-row'><span class='flow-node k'>SessionLog</span><span class='flow-arrow'>→ deriveMessages →</span><span class='flow-node m'>Message[]（喂给模型）</span></div>" +
+      "<div class='flow-row'><span class='flow-node k'>SessionLog</span><span class='flow-arrow'>→ replay / fork →</span><span class='flow-node'>回放 · 分叉</span></div>" +
+      "<div class='flow-note'>只有 <code>SessionLog</code> 是持久状态；<code>Message[]</code>、回放帧、分支都是从它<b>派生</b>出来的视图，用完即弃。</div>" +
+      "</div>" +
+      "<div class='callout tip'><span class='c-h'>为什么这么设计</span>历史一旦是<b>算出来</b>的而非存出来的，就永远不会和日志<b>对不上</b>。想改模型看到的内容，只能改日志里的事件，没有第二个入口。这正是 dsh「模型能看到的，必须先写进日志」那条规矩落到代码里的样子。</div>",
   },
   {
     id: "s4",
@@ -129,8 +140,9 @@ export const steps = [
     region: "s4",
     title: "replay：把日志逐帧放一遍",
     prose:
-      "<p>既然历史能算出来，那放到任意一步，就能还原出那一刻模型眼里的样子。dsh 的 Trajectory 视图就是这么回事。</p>" +
-      "<p>replay 是个生成器，每走一步给你「这一步的事件」加「到这步为止的历史」。右边那个 Trace 面板，吃的就是这个。</p>",
+      "<p>既然历史能<b>算</b>出来，那放到<b>任意一步</b>，就能还原出那一刻模型眼里的样子。dsh 的 <b>Trajectory 视图</b>就是这么回事。</p>" +
+      "<p><code>replay</code> 是个<b>生成器</b>，每走一步给你「这一步的事件」加「到这步为止的历史」（对每个 <code>seq</code> 调一次 <code>deriveMessages</code>）。右边那个 <b>Trace 面板</b>，吃的就是这个。</p>" +
+      "<div class='callout tip'><span class='c-h'>要点</span><code>replay</code> 本身<b>不重跑</b> agent、不发任何模型请求，它只是按 <code>seq</code> 把已存的事件重新<b>投影</b>一遍。所以回放是纯读、可离线、可反复，右侧面板的逐帧播放正是它的直接产物。</div>",
   },
   {
     id: "s5",
@@ -138,8 +150,9 @@ export const steps = [
     region: "s5",
     title: "fork：从某一步分叉",
     prose:
-      "<p>事件不可变，所以分叉特别便宜：把某一步之前的事件拷到一条新日志，前面共用，后面各走各的。</p>" +
-      "<p>断点续跑、试别的分支、回看，其实是同一条日志的三种读法而已。</p>",
+      "<p>事件<b>不可变</b>，所以分叉特别<b>便宜</b>：<code>fork(uptoSeq)</code> 把某一步之前的事件拷到一条<b>新日志</b>，前面共用，后面各走各的。</p>" +
+      "<p><b>断点续跑</b>、<b>试别的分支</b>、<b>回看</b>，其实是同一条日志的三种<b>读法</b>而已，区别只在从哪个 <code>seq</code> 起、往哪条日志写。</p>" +
+      "<div class='callout tip'><span class='c-h'>要点</span>因为前缀事件<b>只读且共享</b>，分叉不需要深拷贝整段历史，也不怕改坏原分支。这就是把「历史是算出来的、日志只增不改」两条约束叠在一起后，白捡到的能力。</div>",
   },
   {
     id: "s6",
@@ -147,7 +160,8 @@ export const steps = [
     region: "s6",
     title: "接上 loop：先写日志，再问模型",
     prose:
-      "<p>最后接上 loop。规矩就一条：要给模型看的，先写成事件，再从日志算出请求，别在 loop 里偷偷存一份 messages。</p>" +
-      "<p>守住这条，每一步就自动能回放、能分叉。右边切到「Trace 回放」，对着这段 loop 一步步走一遍看看。</p>",
+      "<p>最后接上 loop。规矩就一条：要给模型看的，<b>先写成事件</b>（<code>append</code>），再从日志 <code>deriveMessages</code> 算出请求，别在 loop 里偷偷存一份 <code>messages</code>。</p>" +
+      "<p>守住这条，每一步就自动能<b>回放</b>、能<b>分叉</b>。右边切到「<b>Trace 回放</b>」，对着这段 loop 一步步走一遍看看。</p>" +
+      "<div class='callout warn'><span class='c-h'>唯一要守的纪律</span>只要 loop 里出现一份<b>私藏的</b> <code>messages</code>，或者<b>先问模型再补日志</b>，可追溯就破了：回放会与真实运行<b>对不上</b>，分叉也会缺事件。顺序永远是<b>先 <code>append</code>，后 <code>deriveMessages</code></b>。</div>",
   },
 ];

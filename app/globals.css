@@ -69,6 +69,37 @@ code { font-family: var(--mono); font-size: 0.85em; background: #efece6; padding
 .step .cite { font-size: 13px; color: var(--txt-faint); margin-top: 6px; padding-left: 12px; border-left: 2px solid var(--line-2); }
 .step .cite a { color: var(--txt-dim); }
 
+/* ---------- 彩色提示块 callout（两章通用） ---------- */
+.callout { position: relative; margin: 18px 0; padding: 12px 16px 12px 44px; border-radius: 10px; font-size: 14.5px; line-height: 1.75; border: 1px solid transparent; }
+.callout::before { position: absolute; left: 14px; top: 11px; font-size: 16px; line-height: 1.5; }
+.callout b { font-weight: 700; }
+.callout code { font-size: 0.84em; }
+/* 要点：为什么这么设计 */
+.callout.tip { background: #eef5f3; border-color: #cfe4de; color: #2c463f; }
+.callout.tip::before { content: "💡"; }
+.callout.tip b { color: #0f766e; }
+/* 注意：易踩的问题 */
+.callout.warn { background: #fdf6e7; border-color: #f2e2bf; color: #6b4a12; }
+.callout.warn::before { content: "⚠️"; }
+.callout.warn b { color: #b45309; }
+/* 定义：术语解释 */
+.callout.def { background: #eef0fb; border-color: #d7dbf5; color: #383a52; }
+.callout.def::before { content: "📎"; }
+.callout.def b { color: var(--accent); }
+.callout .c-h { display: block; font-weight: 700; font-size: 12.5px; letter-spacing: 0.4px; margin-bottom: 3px; text-transform: uppercase; opacity: 0.85; }
+
+/* ---------- 轻量数据流图示 ---------- */
+.flow { margin: 20px 0; padding: 16px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
+.flow-title { font-size: 12.5px; color: var(--txt-dim); font-family: var(--mono); margin-bottom: 12px; letter-spacing: 0.3px; }
+.flow-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-family: var(--mono); font-size: 13px; }
+.flow-row + .flow-row { margin-top: 10px; }
+.flow-node { display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 8px; background: var(--bg-2); border: 1px solid var(--line-2); color: var(--txt); white-space: nowrap; }
+.flow-node.k { border-color: #cfe4de; background: rgba(15,118,110,0.07); color: var(--accent-2); }
+.flow-node.m { border-color: #d7dbf5; background: var(--sel); color: var(--accent); }
+.flow-node.x { border-color: #f2e2bf; background: #fdf6e7; color: #92400e; }
+.flow-arrow { color: var(--txt-faint); font-size: 14px; }
+.flow-note { font-size: 12.5px; color: var(--txt-faint); margin-top: 12px; line-height: 1.7; }
+
 .article-foot { margin-top: 36px; padding-top: 24px; }
 .article-foot p { font-size: 14px; color: var(--txt-dim); margin-bottom: 8px; }
 
