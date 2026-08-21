@@ -159,7 +159,7 @@ export default function Page() {
         <section className="article" ref={articleRef}>
           <div className="hero">
             <h1>{T.meta.title} · {T.meta.subtitle}</h1>
-            <p className="hero-sub">Everything is a plugin，Every run is traceable —— 这里手写 traceable 的那一半。</p>
+            <p className="hero-sub">Everything is a plugin · Every run is traceable —— 两半都手写一遍，先讲最能区分于 pi 的「可插拔」。</p>
             <p className="hero-intro">{T.meta.intro}</p>
             <div className="hero-hint">👉 往下读，右侧代码会随进度逐段补全；读到最后，切到「Trace 回放」逐帧走一遍真实运行。</div>
           </div>
