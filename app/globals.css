@@ -314,6 +314,25 @@ body { overflow-x: hidden; }
 @keyframes cdflash { from { box-shadow: 0 0 0 2px rgba(15,118,110,0.25); } to { box-shadow: 0 0 0 0 rgba(15,118,110,0); } }
 @media (max-width: 920px) { .cd-cols { grid-template-columns: 1fr; } }
 
+/* ---------- Cordis 内核 demo：右侧 stage 承载动态状态 + 日志 ---------- */
+.cordis-stage-pane { display: flex; flex-direction: column; min-height: 0; }
+.cordis-stage { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--panel); }
+.cs-head { padding: 14px 18px; font-size: 13px; font-weight: 700; color: var(--accent-2); border-bottom: 1px solid var(--line); background: var(--bg-2); }
+.cs-head .muted { font-weight: 400; }
+.cs-scroll { flex: 1; min-height: 0; overflow: auto; padding: 16px 18px 40px; }
+.cordis-stage .cd-box { background: #fff; margin-bottom: 14px; }
+.cs-state .cd-row { margin-bottom: 10px; }
+.cordis-stage .cd-log { max-height: none; margin-bottom: 14px; }
+.cordis-stage .cd-logline { overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+.cs-code { border: 1px solid var(--line); border-radius: 9px; background: #fff; overflow: hidden; }
+.cs-code summary { padding: 10px 13px; font-size: 12px; color: var(--txt-dim); cursor: pointer; font-family: var(--mono); }
+.cs-code summary:hover { color: var(--txt); }
+.cs-codebody { border-top: 1px solid var(--line); padding: 10px 0; max-height: 320px; overflow: auto; background: var(--panel); }
+.cs-codebody .code-line { font-size: 12px; }
+@media (max-width: 920px) {
+  .cordis-stage-pane { min-height: 60vh; }
+}
+
 /* ---------- 章节导航 + 章节标题 ---------- */
 .chapter-nav { display: flex; gap: 4px; align-items: center; }
 .chapter-nav a { font-size: 13.5px; color: var(--txt-dim); padding: 6px 12px; border-radius: 8px; text-decoration: none; transition: 0.15s; cursor: pointer; }

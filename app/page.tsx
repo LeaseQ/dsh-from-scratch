@@ -181,7 +181,7 @@ const CD_ALL = [
   { id: "loop", label: "agentLoopPlugin", effect: "on('run')", key: "ctx.agentLoop", kind: "ev" },
 ];
 
-function CordisDemo() {
+function useCordisDemo(codeStep?: any) {
   const ALL = CD_ALL;
   const [mounted, setMounted] = useState<string[]>(["model", "loop"]);
   const [log, setLog] = useState<{ act: "reg" | "rb"; text: string }[]>([
@@ -221,27 +221,36 @@ function CordisDemo() {
     setFlash((n) => n + 1);
   };
 
-  return (
-    <div className="cordis-demo">
+  // 左侧：只保留交互控件（插件 use/dispose 按钮 + 说明）
+  const controls = (
+    <div className="cordis-demo cordis-controls">
       <div className="pd-title">内核机制：挂载即登记副作用，卸载即精确回滚（不跑 run，只看 ctx 的增减）</div>
-      <div className="cd-cols">
-        <div className="cd-box">
-          <div className="cd-h">可挂载 / 卸载的插件</div>
-          {ALL.map((p) => {
-            const on = mounted.includes(p.id);
-            return (
-              <button
-                key={p.id}
-                className={`cd-mount${on ? " active" : ""}`}
-                onClick={() => (on ? unmount(p.id) : mount(p.id))}
-              >
-                <span className="cd-op">{on ? "dispose" : "use"}</span> {p.label} <span className="cd-key">{p.key}</span>
-              </button>
-            );
-          })}
-          <div className="cd-hint">点一次挂载登记，再点一次卸载回滚</div>
-        </div>
-        <div className="cd-box" key={flash}>
+      <div className="cd-box">
+        <div className="cd-h">可挂载 / 卸载的插件</div>
+        {ALL.map((p) => {
+          const on = mounted.includes(p.id);
+          return (
+            <button
+              key={p.id}
+              className={`cd-mount${on ? " active" : ""}`}
+              onClick={() => (on ? unmount(p.id) : mount(p.id))}
+            >
+              <span className="cd-op">{on ? "dispose" : "use"}</span> {p.label} <span className="cd-key">{p.key}</span>
+            </button>
+          );
+        })}
+        <div className="cd-hint">点一次挂载登记，再点一次卸载回滚</div>
+      </div>
+      <div className="pd-note">挂载即出现、卸载即干净，背后是可撤销的副作用：每项能力登记时都把对应的回滚动作压进 dispose 栈，卸载时按名精确弹出，共享 ctx 随之复原。这个演示只观察注册与回滚的对称，不涉及跑一轮的输出——右侧「共享 ctx · 实时状态」面板与操作日志会实时反映每一次登记与回滚。</div>
+    </div>
+  );
+
+  // 右侧：这个演示的动态呈现——共享 ctx 实时状态 + 操作日志
+  const display = (
+    <div className="cordis-stage">
+      <div className="cs-head">共享 ctx · 实时状态与操作日志 <span className="muted">左侧每次 use / dispose 都在这里实时反映</span></div>
+      <div className="cs-scroll">
+        <div className="cd-box cs-state" key={flash}>
           <div className="cd-h">共享 ctx · 实时状态</div>
           <div className="cd-row"><span className="cd-k">services（{services.length}）</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{ALL.find((x) => x.id === s)!.label}</span>) : <span className="cd-empty">空</span>}</div>
           <div className="cd-row"><span className="cd-k">on(run)（{runListeners.length}）</span>{runListeners.length ? runListeners.map((s) => <span key={s} className="cd-chip ev">{s}</span>) : <span className="cd-empty">空</span>}</div>
@@ -252,14 +261,28 @@ function CordisDemo() {
             )) : <span className="cd-empty">空，无副作用待回滚</span>}
           </div>
         </div>
+        <div className="cd-log cs-log">
+          <div className="cd-h">操作日志：副作用的登记（＋）与回滚（－）成对出现</div>
+          {log.map((l, i) => <div key={i} className={`cd-logline ${l.act}`}><span className="cd-sign">{l.act === "reg" ? "＋" : "－"}</span>{l.text}</div>)}
+        </div>
+        {codeStep && (
+          <details className="cs-code">
+            <summary>可选：展开看一眼 {codeStep.file} 内核代码（这一步的重点是上面的动态状态，不是代码）</summary>
+            <div className="cs-codebody">
+              {String(codeStep.code).split("\n").map((ln: string, i: number) => (
+                <div key={i} className="code-line">
+                  <span className="ln">{i + 1}</span>
+                  <span className="lc" dangerouslySetInnerHTML={{ __html: highlight(ln) }} />
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
       </div>
-      <div className="cd-log">
-        <div className="cd-h">操作日志：副作用的登记（＋）与回滚（－）成对出现</div>
-        {log.map((l, i) => <div key={i} className={`cd-logline ${l.act}`}><span className="cd-sign">{l.act === "reg" ? "＋" : "－"}</span>{l.text}</div>)}
-      </div>
-      <div className="pd-note">挂载即出现、卸载即干净，背后是可撤销的副作用：每项能力登记时都把对应的回滚动作压进 dispose 栈，卸载时按名精确弹出，共享 ctx 随之复原。这个演示只观察注册与回滚的对称，不涉及跑一轮的输出。</div>
     </div>
   );
+
+  return { controls, display };
 }
 
 /* ---------- Chapter：一整章的文章列表 + 右侧 stage ---------- */
@@ -278,6 +301,11 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
   const codeScrollRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
   const traceCodeRef = useRef<HTMLPreElement>(null);
+
+  // Cordis 内核演示：左侧控件 + 右侧动态状态/日志（共享同一份状态）
+  const k0Step = useMemo(() => steps.find((s) => s.id === "k0"), [steps]);
+  const cordis = useCordisDemo(k0Step);
+  const isCordisStage = activeId === "k0";
 
   /* 滚动联动：选出当前阅读到的 step */
   useEffect(() => {
@@ -368,7 +396,7 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
             <span className="step-num">STEP {i} · {s.file}</span>
             <h2>{s.title}</h2>
             <div dangerouslySetInnerHTML={{ __html: s.prose }} />
-            {s.id === "k0" && <CordisDemo />}
+            {s.id === "k0" && cordis.controls}
             {s.id === "k5" && <PluginDemo />}
           </article>
         ))}
@@ -384,6 +412,12 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
       </section>
 
       <section className="stage">
+        {isCordisStage ? (
+          <div className="pane active cordis-stage-pane">
+            {cordis.display}
+          </div>
+        ) : (
+        <>
         <div className="stage-tabs">
           <button className={`tab${tab === "code" ? " active" : ""}`} onClick={() => setTab("code")}>
             <span className="dot" /> 代码 <span className="tab-file">{codeView.file}</span>
@@ -470,6 +504,8 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
             </div>
             <div className="trace-note">{pos > 0 ? EVENTS[pos - 1].note : "点「播放」或「下一步」，看事件如何一条条落进日志、模型历史又是怎么从日志算出来的。"}</div>
           </div>
+        )}
+        </>
         )}
       </section>
     </main>
