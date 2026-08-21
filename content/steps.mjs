@@ -8,10 +8,12 @@ export const meta = {
   // 先导：暖场，讲清楚这篇是啥、怎么读
   preface:
     "<blockquote class='pf-quote'>看懂一个框架，最快的办法不是读完它上万行源码，而是挑出最关键的部分，自己动手写一遍。</blockquote>" +
-    "<p>dsh（DeepSeek Harness）是 DeepSeek 开源的 agent harness，代码量不小。这篇不打算啃它全部，只挑两个最能代表它的模块，用一百多行从零写一遍。写完你大概就明白它为什么长这样。这个精简版我叫它 nano-dsh。</p>" +
-    "<p>读法很简单：跟着文字往下走，需要什么就写什么，右边编辑器里对应的代码会自己浮现出来。你不用一上来就盯着几百行发怵，读到哪、代码长到哪。读完，核心就齐了。</p>" +
-    "<p>为什么挑这两个？因为 dsh 就一句话：<b>Everything is a plugin, Every run is traceable</b>。前半句「万物皆插件」是它跟 pi 最不一样的地方；后半句「可追溯」是它把一次运行完整记下来的办法。我们一个一个来。</p>" +
-    "<p>放轻松，这是篇文章，不是一本书。看不懂的 TypeScript 语法先跳过，不影响主线。</p>" +
+    "<p>dsh（DeepSeek Harness）是 DeepSeek 开源的 agent harness，知识和内容很多，但随之而来的是上万行代码和大量 AI 生成的、难以理解的冗杂解析。</p>" +
+    "<p>这篇文章不打算详细阐述它全部的设计思想，而是挑出了两个最能代表它的模块，用一百多行从零写一遍。写完后，你就可以直观感受到它长什么样、有什么优缺点。</p>" +
+    "<p>这个精简版我叫它 nano-dsh。</p>" +
+    "<p>读法很简单：跟着文字往下走，需要什么就写什么，右边编辑器里对应的代码会自己浮现出来。你不用一上来就盯着几百行发怵，读到哪里、代码就会定位到哪里。</p>" +
+    "<p>为什么挑这两个？因为 dsh 就一句话：<b>Everything is a plugin, Every run is traceable</b>。前半句「万物皆插件」是它跟其余框架最不一样的地方；后半句「可追溯」则是所有需要可观测框架 / 项目都值得借鉴的。</p>" +
+    "<p>放轻松，这是篇文章，不是一本书，看不懂的语法先跳过，让我们用最直观的方式来体验一次 Loop 的流程。</p>" +
     "<p class='pf-note'>说明：这是照着 <a href='https://pi-from-scratch.vercel.app/' target='_blank' rel='noreferrer'>pi-from-scratch</a> 的形式做的 dsh 版。nano-dsh 是为讲清楚重写的极简代码，不是 dsh 的真实源码，但概念对得上。</p>",
 };
 
