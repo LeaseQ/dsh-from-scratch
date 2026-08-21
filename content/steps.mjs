@@ -7,13 +7,13 @@ export const meta = {
   repo: "https://github.com/deepseek-ai/deepseek-harness",
   // 先导：暖场，讲清楚这篇是啥、怎么读
   preface:
-    "<blockquote class='pf-quote'>看懂一个框架，最快的办法不是读完它上万行源码，而是挑出最关键的部分，自己动手写一遍。</blockquote>" +
+    "<blockquote class='pf-quote'>看懂一个框架，与其读完它上万行源码，不如挑出关键的部分，自己动手写一遍。</blockquote>" +
     "<p>dsh（DeepSeek Harness）是 DeepSeek 开源的 agent harness，知识和内容很多，但随之而来的是上万行代码和大量 AI 生成的、难以理解的冗杂解析。</p>" +
-    "<p>这篇文章不打算详细阐述它全部的设计思想，而是挑出了两个最能代表它的模块，用一百多行从零写一遍。写完后，你就可以直观感受到它长什么样、有什么优缺点。</p>" +
+    "<p>这篇文章不打算详细阐述它全部的设计思想，而是挑出了两个有代表性的模块，用一百多行从零写一遍。写完后，你就可以直观感受到它长什么样、有什么优缺点。</p>" +
     "<p>这个精简版我叫它 nano-dsh。</p>" +
     "<p>读法很简单：跟着文字往下走，需要什么就写什么，右边编辑器里对应的代码会自己浮现出来。你不用一上来就盯着几百行发怵，读到哪里、代码就会定位到哪里。</p>" +
-    "<p>为什么挑这两个？因为 dsh 就一句话：<b>Everything is a plugin, Every run is traceable</b>。前半句「万物皆插件」是它跟其余框架最不一样的地方；后半句「可追溯」则是所有需要可观测框架 / 项目都值得借鉴的。</p>" +
-    "<p>放轻松，这是篇文章，不是一本书，看不懂的语法先跳过，让我们用最直观的方式来体验一次 Loop 的流程。</p>" +
+    "<p>为什么挑这两个？因为 dsh 的立意可以概括成：<b>Everything is a plugin, Every run is traceable</b>。前半句「万物皆插件」是它区别于其余框架的地方；后半句「可追溯」则是所有需要可观测的框架 / 项目都值得借鉴的。</p>" +
+    "<p>放轻松，这是篇文章，不是一本书，看不懂的语法先跳过，让我们直观地体验一次 Loop 的流程。</p>" +
     "<p class='pf-note'>说明：形式参考了 <a href='https://pi-from-scratch.vercel.app/' target='_blank' rel='noreferrer'>pi-from-scratch</a>。</p>",
 };
 
@@ -27,7 +27,7 @@ export const steps = [
     prose:
       "<p>我们先组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑。</p>" +
       "<p>下面这个交互框可直接操作。这些能力都可以挂载、卸载或替换，配置好后点 <code>emit('run')</code> 观察结果。先通过挂载、卸载与多次 run 建立直观印象。</p>" +
-      "<p>操作时请留意一点：卸载某项能力，与它相关的行为随即消失；重新挂载，行为又恢复。</p>",
+      "<p>操作时不妨观察一点：卸载某项能力，与它相关的行为随即消失；重新挂载，行为又恢复。</p>",
   },
   {
     id: "k1",
@@ -95,7 +95,7 @@ export const steps = [
       "<p>上一章内核已经能把插件拼起来跑一个 agent 了。但只是跑起来还不够：它一步步在干嘛，你其实<b>看不见</b>。</p>" +
       "<p>而 agent 又老是要<b>中断续跑</b>、<b>回看某一步</b>、<b>从中间分叉</b>试别的走法。想做到这些，前提是把一次运行完整记下来。这就是 dsh 的第二件事：<b>可追溯</b>。</p>" +
       "<p>它的做法是：一次运行里发生的一切，都记进一条<b>只增不改</b>的日志，模型看到的历史由这条日志<b>算出来</b>，不另存一份。我们先把事件类型 <code>SessionEvent</code> 定出来。</p>" +
-      "<div class='callout tip'><span class='c-h'>这一章的主线</span>只有一条<b>唯一真相源</b>：append-only 的事件日志。<code>replay</code>、<code>fork</code>、模型历史，全是这条日志的不同<b>读法</b>，而不是各存各的状态。守住这点，可观测与可回溯就是白送的。</div>",
+      "<div class='callout tip'><span class='c-h'>这一章的主线</span>围绕一个<b>真相源</b>展开：append-only 的事件日志。<code>replay</code>、<code>fork</code>、模型历史，都是这条日志的不同<b>读法</b>，而不是各存各的状态。守住这点，可观测与可回溯便水到渠成。</div>",
   },
   {
     id: "s1",
@@ -124,7 +124,7 @@ export const steps = [
     title: "deriveMessages：从日志算出模型历史",
     prose:
       "<p>重点来了。模型看到的历史<b>不是另存一份</b>，而是把日志从头过一遍<b>算</b>出来，dsh 里这个函数叫 <code>deriveMessages</code>。</p>" +
-      "<p>谁进历史谁不进，一句话：<code>user/message</code>、<code>assistant/message</code>、<code>tool/result</code> <b>进</b>；<code>assistant/chunk</code>、<code>turn/*</code>、<code>tool/call</code> <b>不进</b>，它们只管回放和显示。</p>" +
+      "<p>谁进历史谁不进，规则很清楚：<code>user/message</code>、<code>assistant/message</code>、<code>tool/result</code> <b>进</b>；<code>assistant/chunk</code>、<code>turn/*</code>、<code>tool/call</code> <b>不进</b>，它们只管回放和显示。</p>" +
       "<div class='flow'>" +
       "<div class='flow-title'>数据流：日志是源头，历史是投影</div>" +
       "<div class='flow-row'><span class='flow-node x'>agent 运行</span><span class='flow-arrow'>→ append →</span><span class='flow-node k'>SessionLog（只增不改）</span></div>" +
@@ -132,7 +132,7 @@ export const steps = [
       "<div class='flow-row'><span class='flow-node k'>SessionLog</span><span class='flow-arrow'>→ replay / fork →</span><span class='flow-node'>回放 · 分叉</span></div>" +
       "<div class='flow-note'>只有 <code>SessionLog</code> 是持久状态；<code>Message[]</code>、回放帧、分支都是从它<b>派生</b>出来的视图，用完即弃。</div>" +
       "</div>" +
-      "<div class='callout tip'><span class='c-h'>为什么这么设计</span>历史一旦是<b>算出来</b>的而非存出来的，就永远不会和日志<b>对不上</b>。想改模型看到的内容，只能改日志里的事件，没有第二个入口。这正是 dsh「模型能看到的，必须先写进日志」那条规矩落到代码里的样子。</div>",
+      "<div class='callout tip'><span class='c-h'>为什么这么设计</span>历史一旦是<b>算出来</b>的而非存出来的，就不会和日志<b>对不上</b>。想改模型看到的内容，只能改日志里的事件，没有第二个入口。这正是 dsh「模型能看到的，必须先写进日志」那条规矩落到代码里的样子。</div>",
   },
   {
     id: "s4",
@@ -160,8 +160,8 @@ export const steps = [
     region: "s6",
     title: "接上 loop：先写日志，再问模型",
     prose:
-      "<p>最后接上 loop。规矩就一条：要给模型看的，<b>先写成事件</b>（<code>append</code>），再从日志 <code>deriveMessages</code> 算出请求，别在 loop 里偷偷存一份 <code>messages</code>。</p>" +
+      "<p>最后接上 loop。这里的规矩是：要给模型看的，<b>先写成事件</b>（<code>append</code>），再从日志 <code>deriveMessages</code> 算出请求，别在 loop 里偷偷存一份 <code>messages</code>。</p>" +
       "<p>守住这条，每一步就自动能<b>回放</b>、能<b>分叉</b>。右边切到「<b>Trace 回放</b>」，对着这段 loop 一步步走一遍看看。</p>" +
-      "<div class='callout warn'><span class='c-h'>唯一要守的纪律</span>只要 loop 里出现一份<b>私藏的</b> <code>messages</code>，或者<b>先问模型再补日志</b>，可追溯就破了：回放会与真实运行<b>对不上</b>，分叉也会缺事件。顺序永远是<b>先 <code>append</code>，后 <code>deriveMessages</code></b>。</div>",
+      "<div class='callout warn'><span class='c-h'>这里的顺序不能反</span>一旦 loop 里出现一份<b>私藏的</b> <code>messages</code>，或者<b>先问模型再补日志</b>，可追溯就破了：回放会与真实运行<b>对不上</b>，分叉也会缺事件。破坏的根源都在写入次序被打乱。</div>",
   },
 ];

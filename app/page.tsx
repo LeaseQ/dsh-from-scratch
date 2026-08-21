@@ -185,7 +185,7 @@ function CordisDemo() {
         <div className="cd-h">操作日志（副作用的登记与回滚）</div>
         {log.map((l, i) => <div key={i} className="cd-logline">{l}</div>)}
       </div>
-      <div className="pd-note">挂载一项能力，它提供的东西就出现在共享区里；卸载它，此前登记的副作用会被逐条撤销。请留意这个「挂载即出现、卸载即撤销」的现象。</div>
+      <div className="pd-note">这套「挂载即出现、卸载即撤销」的表现，背后是可撤销的副作用：每项能力登记时都记下了对应的回滚动作，插件卸载即回滚，共享区随之复原。</div>
     </div>
   );
 }
