@@ -2,12 +2,12 @@
 // 每个 step 指向 nano-src 里的一个 region，构建时由 generate-content.mjs 注入真实代码。
 export const meta = {
   title: "nano-dsh",
-  subtitle: "从零手写 dsh 的两大模块：万物皆插件 + 可追溯事件流",
+  subtitle: "从零手写 dsh",
   tagline: "Everything is a plugin, Every run is traceable.",
   repo: "https://github.com/deepseek-ai/deepseek-harness",
   // 先导：暖场，讲清楚这篇是啥、怎么读
   preface:
-    "<blockquote class='pf-quote'>「凡我不能创造的，我就不理解。」<span>费曼去世时，黑板上留着这句话。</span></blockquote>" +
+    "<blockquote class='pf-quote'>看懂一个框架，最快的办法不是读完它上万行源码，而是挑出最关键的部分，自己动手写一遍。</blockquote>" +
     "<p>dsh（DeepSeek Harness）是 DeepSeek 开源的 agent harness，代码量不小。这篇不打算啃它全部，只挑两个最能代表它的模块，用一百多行从零写一遍。写完你大概就明白它为什么长这样。这个精简版我叫它 nano-dsh。</p>" +
     "<p>读法很简单：跟着文字往下走，需要什么就写什么，右边编辑器里对应的代码会自己浮现出来。你不用一上来就盯着几百行发怵，读到哪、代码长到哪。读完，核心就齐了。</p>" +
     "<p>为什么挑这两个？因为 dsh 就一句话：<b>Everything is a plugin, Every run is traceable</b>。前半句「万物皆插件」是它跟 pi 最不一样的地方；后半句「可追溯」是它把一次运行完整记下来的办法。我们一个一个来。</p>" +
