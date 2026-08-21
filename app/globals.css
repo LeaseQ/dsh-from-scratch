@@ -229,3 +229,6 @@ body { overflow-x: hidden; }
 .msg-list .msg, .msg-list .msg .tc { overflow-wrap: anywhere; word-break: break-word; }
 .pd-out, .pd-line { overflow-wrap: anywhere; word-break: break-word; }
 .pd-config { overflow-wrap: anywhere; }
+
+/* demo 插件开关行的标签 */
+.pd-tag2 { font-family: var(--mono); font-size: 11px; color: var(--txt-faint); align-self: center; min-width: 40px; }

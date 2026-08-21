@@ -35,6 +35,7 @@ export const steps = [
       "<tr><td>怎么换装</td><td>改代码</td><td class='hi'>改配置，源码不动</td></tr>" +
       "</tbody></table>" +
       "<p>dsh 文档里那句话我挺喜欢：没有一个需要打补丁的特权内核。</p>" +
+      "<p>这套插件机制有个名字，叫 <b>Cordis</b>，是 dsh 底下的框架层。它规定了插件怎么往一个共享的 <code>ctx</code> 上贡献三样东西：服务（像 model、tools）、事件、还有可撤销的副作用。dsh 把每个能力都做成 Cordis 插件，模型、工具、会话、agent loop 才能随配置换。下面写的 nano-dsh，就是把这套机制用极简代码复刻一遍。</p>" +
       "<p class='cite'>参考：<a href='https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/master/docs/architecture.md' target='_blank' rel='noreferrer'>dsh 架构文档 · Cordis 章节</a></p>",
   },
   {

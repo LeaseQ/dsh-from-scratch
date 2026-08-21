@@ -55,6 +55,8 @@ function deriveMessages(applied: any[]) {
 
 function PluginDemo() {
   const [model, setModel] = useState<"openai" | "deepseek">("deepseek");
+  const [toolsOn, setToolsOn] = useState(true);
+  const [loopOn, setLoopOn] = useState(true);
   const [input, setInput] = useState("读 config.json");
   const [res, setRes] = useState<{ model: string; text: string } | null>(null);
   const [mounted, setMounted] = useState<string[]>([]);
@@ -68,27 +70,39 @@ function PluginDemo() {
       on: (e: string, fn: any) => { if (!listeners.has(e)) listeners.set(e, new Set()); listeners.get(e)!.add(fn); },
       emit: async (e: string, ...a: any[]) => { let r: any; for (const fn of listeners.get(e) ?? []) r = await fn(...a); return r; },
     };
-    // buildAgent({ model }) —— 只有这一行随配置变
+    // 每个能力都是一个插件，装不装、装哪个，都由下面的开关决定
     if (model === "deepseek")
-      ctx.provide("model", { name: "DeepSeek-V3", call: async (m: string) => `「DeepSeek-V3」收到「${m}」，我来处理。` });
+      ctx.provide("model", { name: "DeepSeek-V3", call: async (m: string) => `「DeepSeek-V3」收到「${m}」` });
     else
-      ctx.provide("model", { name: "GPT-4o", call: async (m: string) => `「GPT-4o」Got it — handling「${m}」.` });
-    ctx.provide("tools", { read: (p: string) => `content of ${p}` });
-    ctx.on("run", async (x: string) => ctx.get("model").call(x));
+      ctx.provide("model", { name: "GPT-4o", call: async (m: string) => `「GPT-4o」handling「${m}」` });
+    if (toolsOn) ctx.provide("tools", { read: (p: string) => `content of ${p}` });
+    if (loopOn)
+      ctx.on("run", async (x: string) => {
+        const reply = await ctx.get("model").call(x);
+        const tools = ctx.get("tools");
+        const read = tools ? tools.read("config.json") : "tools 没挂，读不了文件";
+        return `${reply} ｜ 顺手 tools.read → ${read}`;
+      });
     const text = await ctx.emit("run", input);
-    setRes({ model: ctx.get("model").name, text });
-    setMounted([`model: ${ctx.get("model").name}`, "tools", "agentLoop"]);
-  }, [model, input]);
+    setRes({ model: ctx.get("model").name, text: text ?? "没有插件在监听 run（agentLoop 没挂）" });
+    setMounted([`model: ${ctx.get("model").name}`, ...(toolsOn ? ["tools"] : []), ...(loopOn ? ["agentLoop"] : [])]);
+  }, [model, input, toolsOn, loopOn]);
 
-  useEffect(() => { run(); }, [model]); // 切换模型即时重算
+  useEffect(() => { run(); }, [model, toolsOn, loopOn]); // 任一插件变动就重算
 
   return (
     <div className="plugin-demo">
-      <div className="pd-title">点一下试试：切换 model，看输出怎么变</div>
+      <div className="pd-title">点一下试试：model、tools、agentLoop 都是插件，能换也能卸</div>
       <div className="pd-config">buildAgent(&#123; model: <span className="pd-val">&quot;{model}&quot;</span> &#125;)</div>
       <div className="pd-toggle">
+        <span className="pd-tag2">model</span>
         <button className={model === "openai" ? "on" : ""} onClick={() => setModel("openai")}>openaiModel</button>
         <button className={model === "deepseek" ? "on" : ""} onClick={() => setModel("deepseek")}>deepseekModel</button>
+      </div>
+      <div className="pd-toggle">
+        <span className="pd-tag2">其它</span>
+        <button className={toolsOn ? "on" : ""} onClick={() => setToolsOn((v) => !v)}>tools {toolsOn ? "已挂 ✓" : "已卸 ✗"}</button>
+        <button className={loopOn ? "on" : ""} onClick={() => setLoopOn((v) => !v)}>agentLoop {loopOn ? "已挂 ✓" : "已卸 ✗"}</button>
       </div>
       <div className="pd-chips">挂载的插件：{mounted.map((m) => <span key={m} className="chip">{m}</span>)}</div>
       <div className="pd-run">
@@ -104,7 +118,7 @@ function PluginDemo() {
           </>
         ) : "点上面的按钮或 run ▶"}
       </div>
-      <div className="pd-note">上面只改了 <code>config.model</code> 一行，loop、tools、内核都没动，输出就变了。</div>
+      <div className="pd-note">换 model、卸掉 tools、卸掉 agentLoop，输出都会跟着变，而内核一行都没改。卸掉 agentLoop 后没人监听 run，卸掉 tools 后读文件那步就失效。这就是「万物皆插件、装得上也拆得干净」。</div>
     </div>
   );
 }
