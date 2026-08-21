@@ -191,3 +191,20 @@ code { font-family: var(--mono); font-size: 0.85em; background: #efece6; padding
 .pd-out { font-family: var(--mono); font-size: 13px; background: #0f1720; color: #7ee2b8; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; word-break: break-all; }
 .pd-note { font-size: 13px; color: #92400e; background: #fdf6e7; border-left: 3px solid var(--amber); border-radius: 6px; padding: 9px 12px; }
 .pd-note code { background: #f6ecd6; color: #92400e; }
+
+/* ---------- demo 输出：切换时闪一下 + 换色 ---------- */
+@keyframes pdflash {
+  0% { box-shadow: 0 0 0 2px rgba(79,70,229,0); }
+  18% { box-shadow: 0 0 0 3px rgba(79,70,229,0.6); }
+  100% { box-shadow: 0 0 0 2px rgba(79,70,229,0); }
+}
+.pd-out { animation: pdflash 0.65s ease; }
+.pd-out.openai { border-left: 4px solid #6366f1; }
+.pd-out.deepseek { border-left: 4px solid #10b981; }
+.pd-badge { display: inline-block; font-family: var(--mono); font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 6px; background: rgba(99,102,241,0.28); color: #c9c6ff; }
+.pd-out.deepseek .pd-badge { background: rgba(16,185,129,0.24); color: #8ff0c8; }
+.pd-arrow { font-size: 11px; color: #8b93a7; margin-left: 8px; }
+.pd-line { margin-top: 9px; font-size: 13px; color: #cdd6e4; }
+.pd-line b { color: #ffd479; font-weight: 600; }
+.pd-out .pd-fn { color: #8aa9ff; }
+.pd-out .pd-str { color: #7ee2b8; }

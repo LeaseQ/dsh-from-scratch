@@ -56,7 +56,7 @@ function deriveMessages(applied: any[]) {
 function PluginDemo() {
   const [model, setModel] = useState<"openai" | "deepseek">("deepseek");
   const [input, setInput] = useState("读 config.json");
-  const [out, setOut] = useState("");
+  const [res, setRes] = useState<{ model: string; text: string } | null>(null);
   const [mounted, setMounted] = useState<string[]>([]);
 
   const run = useCallback(async () => {
@@ -69,13 +69,15 @@ function PluginDemo() {
       emit: async (e: string, ...a: any[]) => { let r: any; for (const fn of listeners.get(e) ?? []) r = await fn(...a); return r; },
     };
     // buildAgent({ model }) —— 只有这一行随配置变
-    if (model === "deepseek") ctx.provide("model", { name: "deepseek", call: async (m: string) => `ds: ${m}` });
-    else ctx.provide("model", { name: "gpt", call: async (m: string) => `gpt: ${m}` });
+    if (model === "deepseek")
+      ctx.provide("model", { name: "DeepSeek-V3", call: async (m: string) => `「DeepSeek-V3」收到「${m}」，我来处理。` });
+    else
+      ctx.provide("model", { name: "GPT-4o", call: async (m: string) => `「GPT-4o」Got it — handling「${m}」.` });
     ctx.provide("tools", { read: (p: string) => `content of ${p}` });
     ctx.on("run", async (x: string) => ctx.get("model").call(x));
-    const r = await ctx.emit("run", input);
-    setOut(`model = ${ctx.get("model").name}   →   run("${input}") = ${r}`);
-    setMounted([`model: ${model}`, "tools", "agentLoop"]);
+    const text = await ctx.emit("run", input);
+    setRes({ model: ctx.get("model").name, text });
+    setMounted([`model: ${ctx.get("model").name}`, "tools", "agentLoop"]);
   }, [model, input]);
 
   useEffect(() => { run(); }, [model]); // 切换模型即时重算
@@ -93,7 +95,15 @@ function PluginDemo() {
         <input value={input} onChange={(e) => setInput(e.target.value)} />
         <button onClick={run}>run ▶</button>
       </div>
-      <div className="pd-out">{out}</div>
+      <div className={`pd-out ${model}`} key={res ? res.model + res.text : "empty"}>
+        {res ? (
+          <>
+            <span className="pd-badge">{res.model}</span>
+            <span className="pd-arrow">← 当前挂载的 model 插件（切换按钮就换它）</span>
+            <div className="pd-line"><span className="pd-fn">run(</span><span className="pd-str">&quot;{input}&quot;</span><span className="pd-fn">)</span> = <b>{res.text}</b></div>
+          </>
+        ) : "点上面的按钮或 run ▶"}
+      </div>
       <div className="pd-note">只改了 <code>config.model</code> 一行，<b>loop / tools / 内核都没动</b>，输出就换了 —— 这是 pi 里必须改代码才能做到的事。</div>
     </div>
   );
