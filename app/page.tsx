@@ -84,7 +84,7 @@ function PluginDemo() {
 
   return (
     <div className="plugin-demo">
-      <div className="pd-title">▶ 试运行 · 配置即组装（切换下面的 model 插件看输出变化）</div>
+      <div className="pd-title">点一下试试：切换 model，看输出怎么变</div>
       <div className="pd-config">buildAgent(&#123; model: <span className="pd-val">&quot;{model}&quot;</span> &#125;)</div>
       <div className="pd-toggle">
         <button className={model === "openai" ? "on" : ""} onClick={() => setModel("openai")}>openaiModel</button>
@@ -99,12 +99,12 @@ function PluginDemo() {
         {res ? (
           <>
             <span className="pd-badge">{res.model}</span>
-            <span className="pd-arrow">← 当前挂载的 model 插件（切换按钮就换它）</span>
+            <span className="pd-arrow">← 现在挂着的 model 插件</span>
             <div className="pd-line"><span className="pd-fn">run(</span><span className="pd-str">&quot;{input}&quot;</span><span className="pd-fn">)</span> = <b>{res.text}</b></div>
           </>
         ) : "点上面的按钮或 run ▶"}
       </div>
-      <div className="pd-note">只改了 <code>config.model</code> 一行，<b>loop / tools / 内核都没动</b>，输出就换了 —— 这是 pi 里必须改代码才能做到的事。</div>
+      <div className="pd-note">上面只改了 <code>config.model</code> 一行，loop、tools、内核都没动，输出就变了。</div>
     </div>
   );
 }
@@ -214,10 +214,10 @@ export default function Page() {
       <main className="layout">
         <section className="article" ref={articleRef}>
           <div className="hero">
-            <h1>{T.meta.title} · {T.meta.subtitle}</h1>
-            <p className="hero-sub">Everything is a plugin · Every run is traceable —— 两半都手写一遍，先讲最能区分于 pi 的「可插拔」。</p>
+            <h1>{T.meta.subtitle}</h1>
+            <p className="hero-sub">{T.meta.tagline}</p>
             <p className="hero-intro">{T.meta.intro}</p>
-            <div className="hero-hint">👉 往下读，右侧代码会随进度逐段补全；读到最后，切到「Trace 回放」逐帧走一遍真实运行。</div>
+            <div className="hero-hint">往下读，右侧代码会跟着补全。读到最后，切到「Trace 回放」，把一次真实运行一步步放一遍。</div>
           </div>
           {STEPS.map((s, i) => (
             <article key={s.id} className={`step${s.id === activeId ? " active" : ""}`} data-id={s.id}>
