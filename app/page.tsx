@@ -91,7 +91,7 @@ function PluginDemo() {
 
   return (
     <div className="plugin-demo">
-      <div className="pd-title">点一下试试：model、tools、agentLoop 都是插件，能换也能卸</div>
+      <div className="pd-title">交互演示：model、tools、agentLoop 均为插件，可替换、可卸载</div>
       <div className="pd-config">buildAgent(&#123; model: <span className="pd-val">&quot;{model}&quot;</span> &#125;)</div>
       <div className="pd-toggle">
         <span className="pd-tag2">model</span>
@@ -117,7 +117,7 @@ function PluginDemo() {
           </>
         ) : "点上面的按钮或 run ▶"}
       </div>
-      <div className="pd-note">换 model、卸掉 tools、卸掉 agentLoop，输出都会跟着变，而内核一行都没改。卸掉 agentLoop 后没人监听 run，卸掉 tools 后读文件那步就失效。这就是「万物皆插件、装得上也拆得干净」。</div>
+      <div className="pd-note">替换 model、卸载 tools、卸载 agentLoop，输出都会随之变化，而内核一行都未改动。卸载 agentLoop 后无人监听 run，卸载 tools 后读文件那一步随之失效。这正是「万物皆插件、装卸对称」。</div>
     </div>
   );
 }
@@ -157,7 +157,7 @@ function CordisDemo() {
 
   return (
     <div className="cordis-demo">
-      <div className="pd-title">挂上 / 卸下 / 换掉这些能力，再点 emit('run')，看会发生什么</div>
+      <div className="pd-title">挂载 / 卸载 / 替换这些能力，再点 emit('run') 观察结果</div>
       <div className="cd-cols">
         <div className="cd-box">
           <div className="cd-h">可挂载插件</div>
@@ -185,7 +185,7 @@ function CordisDemo() {
         <div className="cd-h">操作日志（副作用的登记与回滚）</div>
         {log.map((l, i) => <div key={i} className="cd-logline">{l}</div>)}
       </div>
-      <div className="pd-note">挂上一个能力，它提供的东西就出现在共享区里；卸掉它，之前登记的全都被逐条撤销。留意这个「挂上就有、卸掉就没」的手感，等下我们会告诉你它的正经名字。</div>
+      <div className="pd-note">挂载一项能力，它提供的东西就出现在共享区里；卸载它，此前登记的副作用会被逐条撤销。请留意这个「挂载即出现、卸载即撤销」的现象，稍后我们会给它准确的名称。</div>
     </div>
   );
 }
