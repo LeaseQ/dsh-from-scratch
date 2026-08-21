@@ -127,7 +127,7 @@ function PluginDemo() {
 
   return (
     <div className="plugin-demo">
-      <div className="pd-title">交互演示：model / tools / skills / session / sandbox / storage / scheduler / ui / agentLoop 均为插件，可替换、可卸载</div>
+      <div className="pd-title">能力组合决定行为：勾选若干类插件，点 emit('run') 跑一轮，看输出按在场 / 缺失分行变化</div>
       <div className="pd-config">buildAgent(&#123; model: <span className="pd-val">&quot;{model}&quot;</span> &#125;)</div>
       <div className="pd-toggle">
         <span className="pd-tag2">model</span>
@@ -162,7 +162,7 @@ function PluginDemo() {
           </>
         ) : "点上面的按钮或 run ▶"}
       </div>
-      <div className="pd-note">替换 model、勾掉某个插件，输出都会随之变化，而内核一行都未改动。卸载 agentLoop 后无人监听 run；卸载 tools 后读文件那一步失效；缺 sandbox 则代码类工具跳过，缺 storage 则结果不持久化。这些能力都挂在同一个 ctx 上，没有谁是特权核心。</div>
+      <div className="pd-note">这一轮的行为，由在场的插件组合决定：换掉 model，回复的口吻随之切换；缺 tools，模型只能空手作答；缺 sandbox，代码类工具跳过；缺 loop，则没人监听 run。同一句输入，配不同的能力就跑出不同的结果，呼应「没有特权核心，行为由组合而来」。</div>
     </div>
   );
 }
@@ -184,73 +184,80 @@ const CD_ALL = [
 function CordisDemo() {
   const ALL = CD_ALL;
   const [mounted, setMounted] = useState<string[]>(["model", "loop"]);
-  const [log, setLog] = useState<string[]>(["初始：挂了 modelPlugin、agentLoopPlugin"]);
-  const [out, setOut] = useState<string[] | null>(null);
+  const [log, setLog] = useState<{ act: "reg" | "rb"; text: string }[]>([
+    { act: "reg", text: "初始装配：use(modelPlugin) 登记 provide('model')，use(agentLoopPlugin) 登记 on('run')" },
+  ]);
+  const [flash, setFlash] = useState(0);
 
   const services = mounted.filter((m) => ALL.find((x) => x.id === m)!.kind === "svc");
   const runListeners = mounted.filter((m) => ALL.find((x) => x.id === m)!.kind === "ev").map((m) => ALL.find((x) => x.id === m)!.label);
+  // 回滚栈：每挂一个插件，就压入一条对应的撤销动作，卸载时按名精确弹出
+  const disposeStack = mounted.map((id) => {
+    const p = ALL.find((x) => x.id === id)!;
+    return { id, label: p.label, undo: p.kind === "ev" ? `off('run')` : `移除 ${p.effect}` };
+  });
 
   const mount = (id: string) => {
     if (mounted.includes(id)) return;
     const p = ALL.find((x) => x.id === id)!;
     setMounted([...mounted, id]);
-    setLog((l) => [...l, `use(${p.label})：注册 ${p.effect} → ${p.key}`]);
-    setOut(null);
+    setLog((l) => [...l, {
+      act: "reg",
+      text: p.kind === "ev"
+        ? `use(${p.label})｜登记副作用：on('run') 往 ${p.key} 添加监听者，同时压入回滚动作 off('run')`
+        : `use(${p.label})｜登记副作用：${p.effect} → ${p.key}，同时压入回滚动作「移除该服务」`,
+    }]);
+    setFlash((n) => n + 1);
   };
   const unmount = (id: string) => {
     const p = ALL.find((x) => x.id === id)!;
     setMounted(mounted.filter((x) => x !== id));
-    setLog((l) => [...l, `dispose(${p.label})：回滚 ${p.effect}`]);
-    setOut(null);
-  };
-  const emitRun = () => {
-    if (!mounted.includes("loop")) return setOut(["emit('run') → 没有插件在监听 run，什么都没发生"]);
-    if (!mounted.includes("model")) return setOut(["emit('run') → agentLoop 想调 model，但 model 服务没挂，报错"]);
-    const has = (id: string) => mounted.includes(id);
-    const lines = ["emit('run') → agentLoop 触发 → 调 model 服务"];
-    lines.push(has("tools")
-      ? (has("sandbox") ? "· tools 在场：可读文件，代码 / shell 类工具在 sandbox 里执行" : "· tools 在场：可读文件；缺 sandbox，代码 / shell 类工具跳过（示意）")
-      : "· 缺 tools：模型只能空手作答，跳过读文件");
-    lines.push(has("skills") ? "· skills 在场：注入可复用技能提示" : "· 缺 skills：无额外技能提示");
-    lines.push(has("session") ? "· session 在场：每步写进 append-only 日志，可回放 / 分叉" : "· 缺 session：不留痕，无法回放（示意）");
-    lines.push(has("storage") ? "· storage 在场：结果持久化，重启仍在" : "· 缺 storage：结果只在内存，重启即丢（示意）");
-    lines.push(has("scheduler") ? "· scheduler 在场：可排后台 / 定时任务" : "· 缺 scheduler：只能同步跑完这一次（示意）");
-    lines.push(has("ui") ? "· ui 在场：结果渲染到界面" : "· 缺 ui：仅返回数据，无界面呈现");
-    setOut(lines);
+    setLog((l) => [...l, {
+      act: "rb",
+      text: p.kind === "ev"
+        ? `dispose(${p.label})｜撤销副作用：弹出回滚动作 off('run')，${p.key} 的监听者移除`
+        : `dispose(${p.label})｜撤销副作用：弹出回滚动作，${p.effect} 撤销，${p.key} 复原为上一个`,
+    }]);
+    setFlash((n) => n + 1);
   };
 
   return (
     <div className="cordis-demo">
-      <div className="pd-title">挂载 / 卸载 / 替换这些能力，再点 emit('run') 观察结果</div>
+      <div className="pd-title">内核机制：挂载即登记副作用，卸载即精确回滚（不跑 run，只看 ctx 的增减）</div>
       <div className="cd-cols">
         <div className="cd-box">
-          <div className="cd-h">可挂载插件</div>
-          {ALL.map((p) => (
-            <button key={p.id} className="cd-mount" disabled={mounted.includes(p.id)} onClick={() => mount(p.id)}>
-              + {p.label} <span className="cd-key">{p.key}</span>
-            </button>
-          ))}
+          <div className="cd-h">可挂载 / 卸载的插件</div>
+          {ALL.map((p) => {
+            const on = mounted.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                className={`cd-mount${on ? " active" : ""}`}
+                onClick={() => (on ? unmount(p.id) : mount(p.id))}
+              >
+                <span className="cd-op">{on ? "dispose" : "use"}</span> {p.label} <span className="cd-key">{p.key}</span>
+              </button>
+            );
+          })}
+          <div className="cd-hint">点一次挂载登记，再点一次卸载回滚</div>
         </div>
-        <div className="cd-box">
-          <div className="cd-h">共享 ctx</div>
-          <div className="cd-row"><span className="cd-k">services</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{ALL.find((x) => x.id === s)!.label}</span>) : <span className="cd-empty">空</span>}</div>
-          <div className="cd-row"><span className="cd-k">on(run)</span>{runListeners.length ? runListeners.map((s) => <span key={s} className="cd-chip ev">{s}</span>) : <span className="cd-empty">空</span>}</div>
-          <div className="cd-h cd-h2">已挂插件</div>
-          <div className="cd-row">
-            {mounted.length ? mounted.map((id) => {
-              const p = ALL.find((x) => x.id === id)!;
-              return <span key={id} className="cd-chip mnt">{p.label}<button onClick={() => unmount(id)} title="卸载">×</button></span>;
-            }) : <span className="cd-empty">还没挂任何插件</span>}
+        <div className="cd-box" key={flash}>
+          <div className="cd-h">共享 ctx · 实时状态</div>
+          <div className="cd-row"><span className="cd-k">services（{services.length}）</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{ALL.find((x) => x.id === s)!.label}</span>) : <span className="cd-empty">空</span>}</div>
+          <div className="cd-row"><span className="cd-k">on(run)（{runListeners.length}）</span>{runListeners.length ? runListeners.map((s) => <span key={s} className="cd-chip ev">{s}</span>) : <span className="cd-empty">空</span>}</div>
+          <div className="cd-h cd-h2">回滚栈 dispose[]（与登记一一对应）</div>
+          <div className="cd-row cd-stack">
+            {disposeStack.length ? disposeStack.map((d) => (
+              <span key={d.id} className="cd-chip rb">{d.label} → {d.undo}</span>
+            )) : <span className="cd-empty">空，无副作用待回滚</span>}
           </div>
         </div>
       </div>
-      <div className="cd-run"><button onClick={emitRun}>emit(&apos;run&apos;) ▶</button></div>
-      {out && <div className="cd-outbox">{out.map((l, i) => <div key={i} className="cd-outline">{l}</div>)}</div>}
       <div className="cd-log">
-        <div className="cd-h">操作日志（副作用的登记与回滚）</div>
-        {log.map((l, i) => <div key={i} className="cd-logline">{l}</div>)}
+        <div className="cd-h">操作日志：副作用的登记（＋）与回滚（－）成对出现</div>
+        {log.map((l, i) => <div key={i} className={`cd-logline ${l.act}`}><span className="cd-sign">{l.act === "reg" ? "＋" : "－"}</span>{l.text}</div>)}
       </div>
-      <div className="pd-note">这套「挂载即出现、卸载即撤销」的表现，背后是可撤销的副作用：每项能力登记时都记下了对应的回滚动作，插件卸载即回滚，共享区随之复原。</div>
+      <div className="pd-note">挂载即出现、卸载即干净，背后是可撤销的副作用：每项能力登记时都把对应的回滚动作压进 dispose 栈，卸载时按名精确弹出，共享 ctx 随之复原。这个演示只观察注册与回滚的对称，不涉及跑一轮的输出。</div>
     </div>
   );
 }

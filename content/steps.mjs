@@ -89,8 +89,8 @@ export const steps = [
     prose:
       "<p>我们先组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
       "<p>dsh 主打「万物皆插件」，可挂载的能力远不止这三样。官网把 models、tools、skills、sessions、sandboxes、storage、loops、scheduling、UI 都列为插件类目：model 提供生成回复的适配器、tools 提供可被调用的工具、skills 提供可复用的技能片段、session 提供 append-only 事件日志、sandbox 提供隔离执行环境、storage 提供持久化、scheduler 负责后台与定时任务、ui 负责界面渲染。它们都挂在同一个 <code>ctx</code> 上，没有谁是特权核心。</p>" +
-      "<p>下面这个交互框可直接操作。这些能力都可以挂载、卸载或替换，配置好后点 <code>emit('run')</code> 观察结果。先通过挂载、卸载与多次 run 建立直观印象。</p>" +
-      "<p>操作时不妨观察一点：卸载某项能力，与它相关的行为随即消失；重新挂载，行为又恢复。</p>",
+      "<p>下面这个交互框可直接操作，它只做一件事：观察内核的注册与回滚。点插件即挂载，再点即卸载，右侧「共享 ctx」面板里的 services 与 on(run) 会实时增减，回滚栈也随之压入 / 弹出对应的撤销动作。</p>" +
+      "<p>操作时留意一点：挂载与卸载是对称的。挂上一个插件，它往 ctx 登记的服务、监听与可撤销副作用同时到位；卸载时按名逐条精确回滚，共享区复原到挂载前。这一步先不跑 run，只看机制本身，跑一轮会由本章末尾的另一个演示专门呈现。</p>",
   },
   {
     id: "k1",
@@ -98,7 +98,7 @@ export const steps = [
     region: "k0",
     title: "揭示：你刚才操作的这套机制，叫 Cordis",
     prose:
-      "<p>恭喜你，其实你已经上手了 Cordis。刚才对能力的挂载、卸载与替换，以及点击 <code>emit('run')</code>，看似随意，背后是一套有名字的机制，即 <b>Cordis</b>，dsh 的底层框架层。</p>" +
+      "<p>恭喜你，其实你已经上手了 Cordis。刚才对能力的挂载与卸载，以及那套「登记副作用、卸载即回滚」的表现，看似随意，背后是一套有名字的机制，即 <b>Cordis</b>，dsh 的底层框架层。</p>" +
       "<p>用准确的说法描述：每项能力都是一个插件。插件之间不互相 import，而是向一个共享上下文 <code>ctx</code> 贡献三类东西：服务（如 model、tools）、事件（<code>on</code> / <code>emit</code>），以及可撤销的副作用（卸载时自动回滚，也就是你刚才观察到的「卸载即消失、挂载即恢复」）。</p>" +
       "<p>dsh 文档中有一句概括很到位：没有一个需要打补丁的特权核心。连 agent loop 本身也是插件，不存在改不动的中心。</p>" +
       "<p>与 pi 对照一下，dsh 的特点会更清晰：</p>" +
@@ -126,7 +126,7 @@ export const steps = [
     region: "k2",
     title: "由表及里（二）：事件 on / emit，插件之间不点名",
     prose:
-      "<p>你点击的那个 <code>emit('run')</code> 就在这里。插件之间需要能互相触发，又不能互相点名写死，否则又退回到那种反复改动的主循环。</p>" +
+      "<p>本章末尾那个演示里的 <code>emit('run')</code> 就落在这里。插件之间需要能互相触发，又不能互相点名写死，否则又退回到那种反复改动的主循环。</p>" +
       "<p>解决方式是走事件：<code>on('run', ...)</code> 订阅，<code>emit('run', ...)</code> 触发。触发方与监听方彼此无需知道对方存在。<code>on</code> 还会返回一个 <code>dispose</code>，同样登记进了撤销记录。</p>",
   },
   {
@@ -145,7 +145,7 @@ export const steps = [
     title: "由表及里（四）：用配置把插件拼成一个 agent",
     prose:
       "<p>内核齐了，现在把开头你组装的那个 agent 正式拼出来。每项能力都写成插件：<code>openaiModel</code>、<code>deepseekModel</code>、<code>tools</code>，连 agent loop 也不过是个监听 <code>run</code> 的插件。skills、session、sandbox、storage、scheduler、ui 这些类目同样按这套写法挂到同一个 <code>ctx</code> 上，没有谁是特权核心。</p>" +
-      "<p>在 <code>buildAgent</code> 里换一个 model，整条链路随之切换，内核、loop、tools 一处都不用改。这正是开头那种「随取随换、随取随卸」背后的机制：增加能力、替换模型、拆除组件，都只改配置。下面这个交互框可直接操作，切换 model 观察输出如何变化。</p>",
+      "<p>在 <code>buildAgent</code> 里换一个 model，整条链路随之切换，内核、loop、tools 一处都不用改。这正是开头那种「随取随换、随取随卸」背后的机制：增加能力、替换模型、拆除组件，都只改配置。下面这个交互框换一种看法：不再盯着内核如何登记 / 回滚，而是勾选一组能力、点 <code>emit('run')</code> 跑一轮，看在场的插件组合把这一轮的行为塑造成什么样。缺哪类能力，输出里对应的那一行就会降级，行为的差异一目了然。</p>",
   },
   {
     id: "k6",
