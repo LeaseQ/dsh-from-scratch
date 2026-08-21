@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { TUTORIAL } from "./generated/content";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -242,6 +242,7 @@ export default function Page() {
   }, [codeView]);
 
   const activeIdx = STEPS.findIndex((s) => s.id === activeId);
+  const activeChapter = String(activeId).startsWith("k") ? "chapter1" : "chapter2";
 
   /* Trace 播放 */
   useEffect(() => {
@@ -281,11 +282,15 @@ export default function Page() {
           <span className="logo">🐳</span>
           <div className="brand-text">
             <strong>nano-dsh</strong>
-            <span className="brand-sub">从零手写「可追溯事件流 + Trajectory 回放」</span>
+            <span className="brand-sub">从零手写 dsh</span>
           </div>
         </div>
+        <nav className="chapter-nav">
+          <a href="#preface">先导</a>
+          <a href="#chapter1" className={activeChapter === "chapter1" ? "on" : ""}>万物皆插件</a>
+          <a href="#chapter2" className={activeChapter === "chapter2" ? "on" : ""}>可追溯事件流</a>
+        </nav>
         <div className="topbar-right">
-          <span className="badge">教学极简版 · 对齐 DeepSeek Harness 思想</span>
           <a className="ghost-btn" href={T.meta.repo} target="_blank" rel="noreferrer">dsh 源码 ↗</a>
         </div>
         <div className="progress-rail">
@@ -299,15 +304,19 @@ export default function Page() {
             <h1>{T.meta.subtitle}</h1>
             <p className="hero-sub">{T.meta.tagline}</p>
           </div>
-          <section className="preface" dangerouslySetInnerHTML={{ __html: T.meta.preface }} />
+          <section className="preface" id="preface" dangerouslySetInnerHTML={{ __html: T.meta.preface }} />
           {STEPS.map((s, i) => (
-            <article key={s.id} className={`step${s.id === activeId ? " active" : ""}`} data-id={s.id}>
-              <span className="step-num">STEP {i} · {s.file}</span>
-              <h2>{s.title}</h2>
-              <div dangerouslySetInnerHTML={{ __html: s.prose }} />
-              {s.id === "k3" && <CordisDemo />}
-              {s.id === "k4" && <PluginDemo />}
-            </article>
+            <Fragment key={s.id}>
+              {s.id === "k0" && <h2 className="chapter-head" id="chapter1"><span>第一章</span>万物皆插件</h2>}
+              {s.id === "s0" && <h2 className="chapter-head" id="chapter2"><span>第二章</span>可追溯事件流</h2>}
+              <article className={`step${s.id === activeId ? " active" : ""}`} data-id={s.id}>
+                <span className="step-num">STEP {i} · {s.file}</span>
+                <h2>{s.title}</h2>
+                <div dangerouslySetInnerHTML={{ __html: s.prose }} />
+                {s.id === "k3" && <CordisDemo />}
+                {s.id === "k4" && <PluginDemo />}
+              </article>
+            </Fragment>
           ))}
           <footer className="article-foot">
             <p>本页是一个<b>数据驱动的互动教学模板</b>：正文来自 <code>content/steps.mjs</code>，右侧代码切片由构建脚本从 <code>nano-src/*.ts</code> 真实源码注入。</p>
