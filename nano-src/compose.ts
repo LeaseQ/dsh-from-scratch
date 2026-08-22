@@ -18,12 +18,20 @@ const agentLoop: Plugin = (ctx) => {
   })
 }
 
+// 同一个 'run' 事件可以挂多个插件：这个只记录，不产出。emit('run') 会按注册顺序依次调用它们。
+const runLogger: Plugin = (ctx) => {
+  ctx.on("run", async (input: string) => {
+    console.log(`[trace] run: ${input}`)
+  })
+}
+
 // 「配置即组装」：换一行配置就换掉整个 model，内核和 loop 一行都不用动
 export function buildAgent(config: { model: "openai" | "deepseek" }) {
   const ctx = new Context()
   ctx.use(config.model === "deepseek" ? deepseekModel : openaiModel)
   ctx.use(tools)
   ctx.use(agentLoop)   // loop 也是挂上去的，不是硬编码的核心
+  ctx.use(runLogger)   // 同一个 'run' 事件的第二个监听者：只观测、不产出
   return ctx
 }
 //#endregion

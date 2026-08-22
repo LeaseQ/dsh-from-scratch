@@ -197,7 +197,8 @@ const CD_ALL = [
   { id: "storage", label: "storagePlugin", effect: "provide('storage')", key: "ctx.storage*", kind: "svc" },
   { id: "scheduler", label: "schedulerPlugin", effect: "provide('scheduler')", key: "ctx.jobs", kind: "svc" },
   { id: "ui", label: "uiPlugin", effect: "provide('ui')", key: "ctx.ui*", kind: "svc" },
-  { id: "loop", label: "agentLoopPlugin", effect: "on('run')", key: "ctx.agentLoop", kind: "ev" },
+  { id: "loop", label: "agentLoopPlugin", effect: "on('run')", key: "run 事件", kind: "ev" },
+  { id: "logger", label: "logPlugin", effect: "on('run')", key: "run 事件", kind: "ev" },
 ];
 
 function useCordisDemo() {
@@ -223,7 +224,7 @@ function useCordisDemo() {
     setLog((l) => [...l, {
       act: "reg",
       text: p.kind === "ev"
-        ? `use(${p.label})｜登记副作用：on('run') 往 ${p.key} 添加监听者，同时记下撤销动作 off('run')`
+        ? `use(${p.label})｜登记副作用：on('run') 往 run 事件的监听者集合添加一个监听者，同时记下撤销动作 off('run')`
         : `use(${p.label})｜登记副作用：${p.effect} → ${p.key}，同时记下撤销动作「移除该服务」`,
     }]);
     setFlash((n) => n + 1);
@@ -234,7 +235,7 @@ function useCordisDemo() {
     setLog((l) => [...l, {
       act: "rb",
       text: p.kind === "ev"
-        ? `dispose(${p.label})｜执行该插件的撤销：off('run')，${p.key} 的监听者移除`
+        ? `dispose(${p.label})｜执行该插件的撤销：off('run')，从 run 事件的监听者集合移除它的监听者`
         : `dispose(${p.label})｜执行该插件的撤销：${p.effect} 撤销，${p.key} 复原为上一个`,
     }]);
     setFlash((n) => n + 1);
@@ -273,6 +274,7 @@ function useCordisDemo() {
           <div className="cd-h">共享 ctx · 实时状态</div>
           <div className="cd-row"><span className="cd-k">services（{services.length}）</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{ALL.find((x) => x.id === s)!.label}</span>) : <span className="cd-empty">空</span>}</div>
           <div className="cd-row"><span className="cd-k">on(run)（{runListeners.length}）</span>{runListeners.length ? runListeners.map((s) => <span key={s} className="cd-chip ev">{s}</span>) : <span className="cd-empty">空</span>}</div>
+          <div className="cd-hint">同一个 run 事件可挂多个监听者：挂上 logPlugin 后，agentLoopPlugin 与 logPlugin 会按注册顺序在每轮 run 时依次被调用。</div>
           <div className="cd-h cd-h2">各插件的撤销动作（每插件一条，按名移除）</div>
           <div className="cd-row cd-stack">
             {disposeStack.length ? disposeStack.map((d) => (
