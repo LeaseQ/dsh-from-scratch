@@ -88,7 +88,7 @@ export const steps = [
     title: "动手组装一个 agent",
     prose:
       "<p>我们来组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
-      "<p>下面这个交互框只做挂载与卸载。点插件挂载、再点一次卸载，右侧「共享 ctx · 实时状态」面板里的 services 与 on(run) 会随之增减，回滚栈 dispose[] 也会成对压入与弹出，操作日志把每次登记（＋）与回滚（－）打印出来。跑一轮的部分放在本章末尾的另一个演示里。</p>",
+      "<p>下面这个交互框模拟了插件挂载与卸载的过程：点插件挂载、再点一次卸载，右侧「共享 ctx · 实时状态」面板里的 services 与 on(run) 会随之增减，回滚栈 dispose[] 也会成对压入与弹出，操作日志把每次登记（＋）与回滚（－）打印出来。</p>",
     principleProse:
       "<p>上手之后再看原理落在哪几行：卸载为什么能精确到单个插件、「移除该服务」到底移除了什么，右侧同步给出 <code>kernel.ts</code> 的两段真实源码，一段是 <code>use(plugin)</code>，一段是 <code>provide(name, impl)</code>，对照着读。</p>" +
       "<figure class='rollback-fig'>" +
