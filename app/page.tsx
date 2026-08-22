@@ -210,7 +210,7 @@ function useCordisDemo() {
 
   const services = mounted.filter((m) => ALL.find((x) => x.id === m)!.kind === "svc");
   const runListeners = mounted.filter((m) => ALL.find((x) => x.id === m)!.kind === "ev").map((m) => ALL.find((x) => x.id === m)!.label);
-  // 回滚栈：每挂一个插件，就压入一条对应的撤销动作，卸载时按名精确弹出
+  // 每挂一个插件，就在它名下记一条撤销动作；卸载时按名找到并执行（filter 移除），不是弹栈
   const disposeStack = mounted.map((id) => {
     const p = ALL.find((x) => x.id === id)!;
     return { id, label: p.label, undo: p.kind === "ev" ? `off('run')` : `移除 ${p.effect}` };
@@ -223,8 +223,8 @@ function useCordisDemo() {
     setLog((l) => [...l, {
       act: "reg",
       text: p.kind === "ev"
-        ? `use(${p.label})｜登记副作用：on('run') 往 ${p.key} 添加监听者，同时压入回滚动作 off('run')`
-        : `use(${p.label})｜登记副作用：${p.effect} → ${p.key}，同时压入回滚动作「移除该服务」`,
+        ? `use(${p.label})｜登记副作用：on('run') 往 ${p.key} 添加监听者，同时记下撤销动作 off('run')`
+        : `use(${p.label})｜登记副作用：${p.effect} → ${p.key}，同时记下撤销动作「移除该服务」`,
     }]);
     setFlash((n) => n + 1);
   };
@@ -234,8 +234,8 @@ function useCordisDemo() {
     setLog((l) => [...l, {
       act: "rb",
       text: p.kind === "ev"
-        ? `dispose(${p.label})｜撤销副作用：弹出回滚动作 off('run')，${p.key} 的监听者移除`
-        : `dispose(${p.label})｜撤销副作用：弹出回滚动作，${p.effect} 撤销，${p.key} 复原为上一个`,
+        ? `dispose(${p.label})｜执行该插件的撤销：off('run')，${p.key} 的监听者移除`
+        : `dispose(${p.label})｜执行该插件的撤销：${p.effect} 撤销，${p.key} 复原为上一个`,
     }]);
     setFlash((n) => n + 1);
   };
@@ -260,7 +260,7 @@ function useCordisDemo() {
         })}
         <div className="cd-hint">点一次挂载登记，再点一次卸载回滚</div>
       </div>
-      <div className="pd-note">挂载即出现、卸载即干净，背后是可撤销的副作用：每项能力登记时都把对应的回滚动作压进 dispose 栈，卸载时按名精确弹出，共享 ctx 随之复原。这个演示只观察注册与回滚的对称，不涉及跑一轮的输出——右侧「共享 ctx · 实时状态」面板与操作日志会实时反映每一次登记与回滚。</div>
+      <div className="pd-note">挂载即出现、卸载即干净，背后是可撤销的副作用：每项能力登记时都在自己名下记下对应的撤销动作，卸载时按名找到并执行，共享 ctx 随之复原。这个演示只观察注册与回滚的对称，不涉及跑一轮的输出——右侧「共享 ctx · 实时状态」面板与操作日志会实时反映每一次登记与回滚。</div>
     </div>
   );
 
@@ -273,15 +273,15 @@ function useCordisDemo() {
           <div className="cd-h">共享 ctx · 实时状态</div>
           <div className="cd-row"><span className="cd-k">services（{services.length}）</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{ALL.find((x) => x.id === s)!.label}</span>) : <span className="cd-empty">空</span>}</div>
           <div className="cd-row"><span className="cd-k">on(run)（{runListeners.length}）</span>{runListeners.length ? runListeners.map((s) => <span key={s} className="cd-chip ev">{s}</span>) : <span className="cd-empty">空</span>}</div>
-          <div className="cd-h cd-h2">回滚栈 dispose[]（与登记一一对应）</div>
+          <div className="cd-h cd-h2">各插件的撤销动作（每插件一条，按名移除）</div>
           <div className="cd-row cd-stack">
             {disposeStack.length ? disposeStack.map((d) => (
               <span key={d.id} className="cd-chip rb">{d.label} → {d.undo}</span>
-            )) : <span className="cd-empty">空，无副作用待回滚</span>}
+            )) : <span className="cd-empty">空，无待撤销的副作用</span>}
           </div>
         </div>
         <div className="cd-log cs-log">
-          <div className="cd-h">操作日志：副作用的登记（＋）与回滚（－）成对出现</div>
+          <div className="cd-h">操作日志：副作用的登记（＋）与撤销（－）成对出现</div>
           {log.map((l, i) => <div key={i} className={`cd-logline ${l.act}`}><span className="cd-sign">{l.act === "reg" ? "＋" : "－"}</span>{l.text}</div>)}
         </div>
       </div>

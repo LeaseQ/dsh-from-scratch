@@ -88,8 +88,9 @@ export const steps = [
     title: "动手组装一个 agent",
     prose:
       "<p>我们来组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
-      "<p>下面这个交互框模拟了插件挂载与卸载的过程：点插件挂载、再点一次卸载，右侧「共享 ctx · 实时状态」面板里的 services 与 on(run) 会随之增减，回滚栈 dispose[] 也会成对压入与弹出，操作日志把每次登记（＋）与回滚（－）打印出来。</p>",
+      "<p>下面这个交互框模拟了插件挂载与卸载的过程：点插件挂载、再点一次卸载，右侧「共享 ctx · 实时状态」面板里的 services 与 on(run) 会随之增减，各插件的撤销动作也会随之登记与移除，操作日志把每次登记（＋）与回滚（－）打印出来。</p>",
     principleProse:
+      "<p>先把主线说清楚：每个插件挂载时，会把「如何复原自己」记成一个撤销动作（<code>provide</code> 捕获旧值 <code>prev</code>，<code>on</code> 返回移除监听的函数），记在该插件名下；卸载时执行它，所以卸谁只影响谁。左侧交互面板是简化演示，用一个列表按名增删来呈现这套机制，本身不是一根栈；真正逐条按后进先出撤销的，是右侧 <code>kernel.ts</code> 的 <code>mine.pop()</code>，只发生在单个插件内部。</p>" +
       "<p>上手之后再看原理落在哪几行：卸载为什么能精确到单个插件、「移除该服务」到底移除了什么，右侧同步给出 <code>kernel.ts</code> 的两段真实源码，一段是 <code>use(plugin)</code>，一段是 <code>provide(name, impl)</code>，对照着读。</p>" +
       "<figure class='rollback-fig'>" +
       "<svg viewBox='0 0 640 360' role='img' aria-label='两层回滚结构示意图' xmlns='http://www.w3.org/2000/svg'>" +
