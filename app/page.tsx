@@ -245,7 +245,7 @@ function useCordisDemo() {
   // 左侧：只保留交互控件（插件 use/dispose 按钮 + 说明）
   const controls = (
     <div className="cordis-demo cordis-controls">
-      <div className="pd-title">内核机制：挂载即登记副作用，卸载即精确回滚（不跑 run，只看 ctx 的增减）</div>
+      <div className="pd-title">内核机制：挂载插件时登记副作用（dispose），卸载插件时则追溯到对应的dispose函数进行精确回滚</div>
       <div className="cd-box">
         <div className="cd-h">可挂载 / 卸载的插件</div>
         {ALL.map((p) => {
