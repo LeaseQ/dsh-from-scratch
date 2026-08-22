@@ -88,7 +88,9 @@ export const steps = [
     title: "动手组装一个 agent",
     prose:
       "<p>我们来组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
-      "<p>下面这个交互框只演示挂载与卸载：点插件挂载、再点卸载，看右侧「共享 ctx」面板里的 services 与 on(run) 如何增减、回滚栈如何压入与弹出；跑一轮的部分放在本章末尾的另一个演示里。</p>" +
+      "<p>下面这个交互框只做挂载与卸载。点插件挂载、再点一次卸载，右侧「共享 ctx · 实时状态」面板里的 services 与 on(run) 会随之增减，回滚栈 dispose[] 也会成对压入与弹出，操作日志把每次登记（＋）与回滚（－）打印出来。跑一轮的部分放在本章末尾的另一个演示里。</p>",
+    principleProse:
+      "<p>上手之后再看原理落在哪几行：卸载为什么能精确到单个插件、「移除该服务」到底移除了什么，右侧同步给出 <code>kernel.ts</code> 的两段真实源码，一段是 <code>use(plugin)</code>，一段是 <code>provide(name, impl)</code>，对照着读。</p>" +
       "<figure class='rollback-fig'>" +
       "<svg viewBox='0 0 640 360' role='img' aria-label='两层回滚结构示意图' xmlns='http://www.w3.org/2000/svg'>" +
       "<defs><style>" +
@@ -141,10 +143,10 @@ export const steps = [
       "<text x='38' y='332' class='rf-t' font-size='12'>只有单个插件内部登记的多条副作用，才在它自己那包里严格 LIFO 逐条弹出。</text>" +
       "</svg>" +
       "</figure>" +
-      "<div class='callout tip'><span class='c-h'>回滚为什么能精确到单个插件</span>" +
-      "撤销 <b>model</b> 时 <b>tools</b>、<b>session</b> 不会被弹出再压回，因为每个插件这次产生的副作用被 <code>splice</code> 剪进了它自己私有的闭包，卸载只遍历这一包。" +
-      "所谓「移除该服务」，就是首次 <code>provide('model', impl)</code> 时记下的反操作：此前该 key 为空，撤销动作便是 <code>delete</code> 掉这个 key。" +
-      "插件内部若登记了多条副作用，才在这一包里按登记顺序 LIFO 逐条撤销。</div>",
+      "<p>卸载精确到单插件，靠的是 <code>use</code> 里的 <code>splice</code>。看右侧 <code>use</code>：<code>const start = this.effects.length</code> 先记下起点，<code>plugin(this)</code> 让插件把这一趟登记的副作用推进公共的 <code>effects</code>，随后 <code>const mine = this.effects.splice(start)</code> 把属于它的那几条剪下来、收进私有闭包 <code>mine</code>。返回的 dispose 里 <code>while (mine.length) mine.pop()!()</code> 只遍历这一包，于是卸载 model 时，tools、session 各自的 <code>mine</code> 没被触碰。</p>" +
+      "<p>「移除该服务」是注册时就记下的反操作，落在 <code>provide</code> 里。看右侧 <code>provide</code>：写入前用 <code>const prev = this.services.get(name)</code> 捕获旧值，再压入撤销动作，<code>prev === undefined</code>（此前这个 key 为空）就 <code>delete</code> 掉该 key，否则 <code>set(prev)</code> 还原。model 属于首次注册，prev 为空，它的撤销动作正是把 <code>'model'</code> 这个 key 删掉。</p>" +
+      "<p>两段并起来看：<code>provide</code> 决定每条撤销动作做什么，<code>use</code> 的 <code>splice</code> 决定它们归谁那一包。单个插件内部登记了多条副作用时，才在自己这包里按登记顺序 LIFO 逐条弹出。</p>" +
+      "<div class='callout def'><span class='c-h'>两层回滚的边界</span>插件之间是一排并列的独立闭包，谁卸载只跑谁那包，没有跨插件的全局 LIFO；<code>on('run')</code> 返回的 dispose 也走这套登记，卸载时把监听者从事件表移除。</div>",
   },
   {
     id: "k1",

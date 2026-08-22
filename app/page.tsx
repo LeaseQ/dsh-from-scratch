@@ -7,6 +7,7 @@ const T: any = TUTORIAL;
 const TR: any = T.trace;
 const EVENTS: any[] = TR.events;
 const N = EVENTS.length;
+const SNIP: any = T.snippets ?? {};
 
 /* ---------- 轻量 TS 语法高亮 ---------- */
 const KW = new Set(["import","export","from","class","private","public","return","const","let","new","for","of","in","while","if","else","break","switch","case","async","await","function","yield","extends","implements","this","true","false","null","undefined","crypto"]);
@@ -30,6 +31,24 @@ function highlight(line: string) {
     else out += `<span class="tok-pun">${esc(m[6])}</span>`;
   }
   return out || "&nbsp;";
+}
+
+/* 命名代码切片：原理块右侧展示 kernel.ts 的真实源码片段 */
+function CodeSlice({ title, code }: { title: string; code?: string }) {
+  if (!code) return null;
+  return (
+    <div className="code-slice">
+      <div className="cs-slice-h">{title}</div>
+      <div className="cs-slice-body">
+        {String(code).split("\n").map((ln, i) => (
+          <div key={i} className="code-line">
+            <span className="ln">{i + 1}</span>
+            <span className="lc" dangerouslySetInnerHTML={{ __html: highlight(ln) }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const TY: Record<string, [string, boolean]> = {
@@ -181,7 +200,7 @@ const CD_ALL = [
   { id: "loop", label: "agentLoopPlugin", effect: "on('run')", key: "ctx.agentLoop", kind: "ev" },
 ];
 
-function useCordisDemo(codeStep?: any) {
+function useCordisDemo() {
   const ALL = CD_ALL;
   const [mounted, setMounted] = useState<string[]>(["model", "loop"]);
   const [log, setLog] = useState<{ act: "reg" | "rb"; text: string }[]>([
@@ -265,19 +284,6 @@ function useCordisDemo(codeStep?: any) {
           <div className="cd-h">操作日志：副作用的登记（＋）与回滚（－）成对出现</div>
           {log.map((l, i) => <div key={i} className={`cd-logline ${l.act}`}><span className="cd-sign">{l.act === "reg" ? "＋" : "－"}</span>{l.text}</div>)}
         </div>
-        {codeStep && (
-          <details className="cs-code">
-            <summary>可选：展开看一眼 {codeStep.file} 内核代码（这一步的重点是上面的动态状态，不是代码）</summary>
-            <div className="cs-codebody">
-              {String(codeStep.code).split("\n").map((ln: string, i: number) => (
-                <div key={i} className="code-line">
-                  <span className="ln">{i + 1}</span>
-                  <span className="lc" dangerouslySetInnerHTML={{ __html: highlight(ln) }} />
-                </div>
-              ))}
-            </div>
-          </details>
-        )}
       </div>
     </div>
   );
@@ -303,9 +309,10 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
   const traceCodeRef = useRef<HTMLPreElement>(null);
 
   // Cordis 内核演示：左侧控件 + 右侧动态状态/日志（共享同一份状态）
-  const k0Step = useMemo(() => steps.find((s) => s.id === "k0"), [steps]);
-  const cordis = useCordisDemo(k0Step);
+  const cordis = useCordisDemo();
   const isCordisStage = activeId === "k0";
+  // k0 分两个子块：交互块（右侧动态状态）与原理块（右侧 kernel.ts 源码），随滚动切换
+  const [k0Sub, setK0Sub] = useState<"interact" | "principle">("interact");
 
   /* 滚动联动：选出当前阅读到的 step */
   useEffect(() => {
@@ -320,6 +327,12 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
           let active = els[0];
           els.forEach((el) => { if (el.getBoundingClientRect().top <= ref) active = el; });
           if (active) setActiveId(active.dataset.id!);
+        }
+        // k0 内部：滚过原理子块的锚点后，右侧从动态状态切到 kernel.ts 源码
+        const principle = articleRef.current?.querySelector<HTMLElement>(".k0-principle");
+        if (principle) {
+          const top = principle.getBoundingClientRect().top;
+          setK0Sub(top <= window.innerHeight * 0.5 ? "principle" : "interact");
         }
         ticking = false;
       });
@@ -397,6 +410,9 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
             <h2>{s.title}</h2>
             <div dangerouslySetInnerHTML={{ __html: s.prose }} />
             {s.id === "k0" && cordis.controls}
+            {s.id === "k0" && s.principleProse && (
+              <div className="k0-principle" dangerouslySetInnerHTML={{ __html: s.principleProse }} />
+            )}
             {s.id === "k5" && <PluginDemo />}
           </article>
         ))}
@@ -414,7 +430,17 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
       <section className="stage">
         {isCordisStage ? (
           <div className="pane active cordis-stage-pane">
-            {cordis.display}
+            {k0Sub === "principle" ? (
+              <div className="cordis-stage k0-code-stage">
+                <div className="cs-head">kernel.ts · 两层回滚的真实源码 <span className="muted">对照左侧原理阅读</span></div>
+                <div className="cs-scroll">
+                  <CodeSlice title="use(plugin)：splice 把副作用剪进插件私有闭包" code={SNIP.use?.code} />
+                  <CodeSlice title="provide(name, impl)：捕获 prev，注册即记下反操作" code={SNIP.provide?.code} />
+                </div>
+              </div>
+            ) : (
+              cordis.display
+            )}
           </div>
         ) : (
         <>

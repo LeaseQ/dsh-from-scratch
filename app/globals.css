@@ -333,6 +333,13 @@ body { overflow-x: hidden; }
 .cs-code summary:hover { color: var(--txt); }
 .cs-codebody { border-top: 1px solid var(--line); padding: 10px 0; max-height: 320px; overflow: auto; background: var(--panel); }
 .cs-codebody .code-line { font-size: 12px; }
+
+/* 原理块右侧：kernel.ts 聚焦源码切片 */
+.k0-code-stage .cs-scroll { padding: 16px 0 40px; }
+.code-slice { border: 1px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden; margin: 0 18px 16px; }
+.cs-slice-h { padding: 10px 14px; font-size: 12.5px; font-weight: 700; color: var(--accent-2); background: var(--bg-2); border-bottom: 1px solid var(--line); font-family: var(--mono); }
+.cs-slice-body { padding: 10px 0; overflow-x: auto; background: var(--panel); }
+.cs-slice-body .code-line { font-size: 12.5px; }
 @media (max-width: 920px) {
   .cordis-stage-pane { min-height: 60vh; }
 }

@@ -18,6 +18,7 @@ export class Context {
   private effects: Dispose[] = []
 
   // 注册一个服务（model、tools、session… 全是服务）
+  //#region kp
   provide<T>(name: string, impl: T): void {
     const prev = this.services.get(name)
     this.services.set(name, impl)
@@ -27,6 +28,7 @@ export class Context {
       else this.services.set(name, prev)
     })
   }
+  //#endregion
 
   get<T>(name: string): T {
     return this.services.get(name) as T
