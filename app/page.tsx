@@ -214,7 +214,8 @@ function useCordisDemo() {
   // 每挂一个插件，就在它名下记一条撤销动作；卸载时按名找到并执行（filter 移除），不是弹栈
   const disposeStack = mounted.map((id) => {
     const p = ALL.find((x) => x.id === id)!;
-    return { id, label: p.label, undo: p.kind === "ev" ? `off('run')` : `移除 ${p.effect}` };
+    const svcName = p.effect.replace(/^provide\('(.+)'\)$/, "$1");
+    return { id, label: p.label, undo: p.kind === "ev" ? `off('run')` : `delete '${svcName}'` };
   });
 
   const mount = (id: string) => {
@@ -225,7 +226,7 @@ function useCordisDemo() {
       act: "reg",
       text: p.kind === "ev"
         ? `use(${p.label})｜登记副作用：on('run') 往 run 事件的监听者集合添加一个监听者，同时记下撤销动作 off('run')`
-        : `use(${p.label})｜登记副作用：${p.effect} → ${p.key}，同时记下撤销动作「移除该服务」`,
+        : `use(${p.label})｜登记副作用：${p.effect} → ${p.key}，同时记下撤销动作 delete '${p.effect.replace(/^provide\('(.+)'\)$/, "$1")}'`,
     }]);
     setFlash((n) => n + 1);
   };
@@ -236,7 +237,7 @@ function useCordisDemo() {
       act: "rb",
       text: p.kind === "ev"
         ? `dispose(${p.label})｜执行该插件的撤销：off('run')，从 run 事件的监听者集合移除它的监听者`
-        : `dispose(${p.label})｜执行该插件的撤销：${p.effect} 撤销，${p.key} 复原为上一个`,
+        : `dispose(${p.label})｜执行该插件的 dispose：delete '${p.effect.replace(/^provide\('(.+)'\)$/, "$1")}'，从 services 移除它注册的服务`,
     }]);
     setFlash((n) => n + 1);
   };
@@ -275,7 +276,7 @@ function useCordisDemo() {
           <div className="cd-row"><span className="cd-k">services（{services.length}）</span>{services.length ? services.map((s) => <span key={s} className="cd-chip svc">{ALL.find((x) => x.id === s)!.label}</span>) : <span className="cd-empty">空</span>}</div>
           <div className="cd-row"><span className="cd-k">on(run)（{runListeners.length}）</span>{runListeners.length ? runListeners.map((s) => <span key={s} className="cd-chip ev">{s}</span>) : <span className="cd-empty">空</span>}</div>
           <div className="cd-hint">同一个 run 事件可挂多个监听者：挂上 logPlugin 后，agentLoopPlugin 与 logPlugin 会按注册顺序在每轮 run 时依次被调用。</div>
-          <div className="cd-h cd-h2">各插件的撤销动作（每插件一条，按名移除）</div>
+          <div className="cd-h cd-h2">各插件的 dispose（每插件一条，按插件名移除）<span className="muted">dispose = 卸载该插件时执行的清理函数</span></div>
           <div className="cd-row cd-stack">
             {disposeStack.length ? disposeStack.map((d) => (
               <span key={d.id} className="cd-chip rb">{d.label} → {d.undo}</span>
