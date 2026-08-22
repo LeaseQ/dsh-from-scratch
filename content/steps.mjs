@@ -144,10 +144,7 @@ export const steps = [
       "<text x='38' y='332' class='rf-t' font-size='12'>只有单个插件内部登记的多条副作用，才在它自己那包里严格 LIFO 逐条弹出。</text>" +
       "</svg>" +
       "</figure>" +
-      "<p>卸载精确到单插件，靠的是 <code>use</code> 里的 <code>splice</code>。看右侧 <code>use</code>：<code>const start = this.effects.length</code> 先记下起点，<code>plugin(this)</code> 让插件把这一趟登记的副作用推进公共的 <code>effects</code>，随后 <code>const mine = this.effects.splice(start)</code> 把属于它的那几条剪下来、收进私有闭包 <code>mine</code>。返回的 dispose 里 <code>while (mine.length) mine.pop()!()</code> 只遍历这一包，于是卸载 model 时，tools、session 各自的 <code>mine</code> 没被触碰。</p>" +
-      "<p>「移除该服务」是注册时就记下的反操作，落在 <code>provide</code> 里。看右侧 <code>provide</code>：写入前用 <code>const prev = this.services.get(name)</code> 捕获旧值，再压入撤销动作，<code>prev === undefined</code>（此前这个 key 为空）就 <code>delete</code> 掉该 key，否则 <code>set(prev)</code> 还原。model 属于首次注册，prev 为空，它的撤销动作正是把 <code>'model'</code> 这个 key 删掉。</p>" +
-      "<p>两段并起来看：<code>provide</code> 决定每条撤销动作做什么，<code>use</code> 的 <code>splice</code> 决定它们归谁那一包。单个插件内部登记了多条副作用时，才在自己这包里按登记顺序 LIFO 逐条弹出。</p>" +
-      "<div class='callout def'><span class='c-h'>两层回滚的边界</span>插件之间是一排并列的独立闭包，谁卸载只跑谁那包，没有跨插件的全局 LIFO；<code>on('run')</code> 返回的 dispose 也走这套登记，卸载时把监听者从事件表移除。</div>" +
+      "<p>细节就写在右侧 <code>use</code> 与 <code>provide</code> 的注释里：<code>use</code> 的 <code>splice</code> 决定每条撤销动作归谁那一包，<code>provide</code> 决定每条撤销动作做什么。卸载 model 只遍历它自己那包，tools、session 不受影响；单个插件内部登记多条副作用时，才在自己这包里按登记顺序 LIFO 逐条弹出。</p>" +
       "<div class='callout tip'><span class='c-h'>事件不止 run，一个事件也不止一个监听者</span>为便于教学，nano 只演示了 <code>'run'</code> 这一个事件。对齐 dsh 架构文档，真实事件按域细分，例如 <code>session/*</code>、<code>agent/*</code>、<code>llm/*</code>；内核用 <code>Map&lt;event, Set&lt;fn&gt;&gt;</code> 存监听者，因此同一个事件可以挂多个插件，日志、埋点、限流都能在每轮 run 时依次介入。右侧交互面板挂上 logPlugin（教学示意插件，非 dsh 自带），即可看到 <code>on('run')</code> 同时列出 agentLoopPlugin 与 logPlugin 两个监听者。</div>",
   },
   {

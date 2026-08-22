@@ -20,9 +20,9 @@ export class Context {
   // 注册一个服务（model、tools、session… 全是服务）
   //#region kp
   provide<T>(name: string, impl: T): void {
-    const prev = this.services.get(name)
+    const prev = this.services.get(name)   // 写入前先捕获旧值，作为「反操作」的依据
     this.services.set(name, impl)
-    // 关键：注册本身是可撤销的。卸载时恢复上一个实现。
+    // 注册即记下撤销动作：首次注册 prev 为空就 delete 掉该 key（这就是「移除该服务」），否则还原成旧值
     this.effects.push(() => {
       if (prev === undefined) this.services.delete(name)
       else this.services.set(name, prev)
@@ -53,12 +53,12 @@ export class Context {
 //#endregion
 
 //#region k3
-  // 挂载插件：把它产生的所有副作用收进一个作用域，
-  // 返回 dispose —— 卸载时逐个回滚（服务恢复、监听移除）。这就是「可插拔」。
+  // 挂载插件：把它这一趟登记的副作用切进「私有的一包」，卸载时只回滚这一包，这就是「可插拔」。
   use(plugin: Plugin): Dispose {
-    const start = this.effects.length
-    plugin(this)                    // 插件在 ctx 上注册服务/监听
-    const mine = this.effects.splice(start)
+    const start = this.effects.length        // 记下起点
+    plugin(this)                             // 插件把服务/监听推进公共 effects
+    const mine = this.effects.splice(start)  // 剪出属于它的那几条，收进私有闭包 mine
+    // 卸载 model 时只遍历它自己的 mine，tools、session 的 mine 不受影响
     return () => { while (mine.length) mine.pop()!() }
   }
 }
