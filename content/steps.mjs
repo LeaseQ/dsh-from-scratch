@@ -88,9 +88,7 @@ export const steps = [
     title: "先动手组装一个 agent",
     prose:
       "<p>我们先组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
-      "<p>dsh 主打「万物皆插件」，可挂载的能力远不止这三样。官网把 models、tools、skills、sessions、sandboxes、storage、loops、scheduling、UI 都列为插件类目：model 提供生成回复的适配器、tools 提供可被调用的工具、skills 提供可复用的技能片段、session 提供 append-only 事件日志、sandbox 提供隔离执行环境、storage 提供持久化、scheduler 负责后台与定时任务、ui 负责界面渲染。它们都挂在同一个 <code>ctx</code> 上，没有谁是特权核心。</p>" +
-      "<p>下面这个交互框可直接操作，它只做一件事：观察内核的注册与回滚。点插件即挂载，再点即卸载，右侧「共享 ctx」面板里的 services 与 on(run) 会实时增减，回滚栈也随之压入 / 弹出对应的撤销动作。</p>" +
-      "<p>操作时留意一点：挂载与卸载是对称的。挂上一个插件，它往 ctx 登记的服务、监听与可撤销副作用同时到位；卸载时按名逐条精确回滚，共享区复原到挂载前。这一步先不跑 run，只看机制本身，跑一轮会由本章末尾的另一个演示专门呈现。</p>",
+      "<p>下面这个交互框先不跑 run，点插件即挂载、再点即卸载，看右侧「共享 ctx」面板里的 services 与 on(run) 如何增减、回滚栈如何压入与弹出；跑一轮由本章末尾的另一个演示专门呈现。</p>",
   },
   {
     id: "k1",
