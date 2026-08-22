@@ -88,7 +88,63 @@ export const steps = [
     title: "先动手组装一个 agent",
     prose:
       "<p>我们先组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
-      "<p>下面这个交互框先不跑 run，点插件即挂载、再点即卸载，看右侧「共享 ctx」面板里的 services 与 on(run) 如何增减、回滚栈如何压入与弹出；跑一轮由本章末尾的另一个演示专门呈现。</p>",
+      "<p>下面这个交互框先不跑 run，点插件即挂载、再点即卸载，看右侧「共享 ctx」面板里的 services 与 on(run) 如何增减、回滚栈如何压入与弹出；跑一轮由本章末尾的另一个演示专门呈现。</p>" +
+      "<figure class='rollback-fig'>" +
+      "<svg viewBox='0 0 640 360' role='img' aria-label='两层回滚结构示意图' xmlns='http://www.w3.org/2000/svg'>" +
+      "<defs><style>" +
+      ".rf-plug{fill:var(--bg-2);stroke:var(--line-2);}" +
+      ".rf-plug.hi{fill:rgba(180,83,9,0.08);stroke:var(--amber);stroke-dasharray:5 4;}" +
+      ".rf-undo{fill:var(--panel-2);stroke:var(--line-2);}" +
+      ".rf-undo.hi{fill:rgba(180,83,9,0.12);stroke:var(--amber);}" +
+      ".rf-t{font-family:var(--sans);fill:var(--txt);}" +
+      ".rf-m{font-family:var(--mono);fill:var(--txt-dim);}" +
+      ".rf-dim{fill:var(--txt-dim);}.rf-am{fill:var(--amber);}.rf-ac{fill:var(--accent-2);}" +
+      "</style></defs>" +
+      "<text x='20' y='26' class='rf-t' font-size='13' font-weight='700'>外层：一排相互独立的插件（可精确卸载任意一个，非全局 LIFO）</text>" +
+      // model plugin (highlighted / being removed)
+      "<rect class='rf-plug hi' x='20' y='42' width='180' height='52' rx='10'/>" +
+      "<text x='36' y='66' class='rf-t' font-size='14' font-weight='700'>model</text>" +
+      "<text x='36' y='84' class='rf-m' font-size='11'>正在卸载 ✕</text>" +
+      "<text x='150' y='72' class='rf-am' font-size='20' font-weight='700'>✕</text>" +
+      // tools plugin
+      "<rect class='rf-plug' x='230' y='42' width='180' height='52' rx='10'/>" +
+      "<text x='246' y='66' class='rf-t' font-size='14' font-weight='700'>tools</text>" +
+      "<text x='246' y='84' class='rf-m' font-size='11'>不受扰动</text>" +
+      // session plugin
+      "<rect class='rf-plug' x='440' y='42' width='180' height='52' rx='10'/>" +
+      "<text x='456' y='66' class='rf-t' font-size='14' font-weight='700'>session</text>" +
+      "<text x='456' y='84' class='rf-m' font-size='11'>不受扰动</text>" +
+      // connectors
+      "<path d='M110 94 L110 118' stroke='var(--amber)' stroke-width='1.5'/>" +
+      "<path d='M320 94 L320 118' stroke='var(--line-2)' stroke-width='1.5'/>" +
+      "<path d='M530 94 L530 118' stroke='var(--line-2)' stroke-width='1.5'/>" +
+      "<text x='20' y='138' class='rf-t' font-size='13' font-weight='700'>内层：每个插件私有的撤销包（插件内部多条副作用才按 LIFO 逐条弹出）</text>" +
+      // model's private undo stack (highlighted)
+      "<rect class='rf-undo hi' x='20' y='150' width='180' height='34' rx='7'/>" +
+      "<text x='34' y='172' class='rf-m' font-size='12' font-weight='700'>delete 'model'</text>" +
+      "<text x='34' y='202' class='rf-am' font-size='11'>← 只执行这一包</text>" +
+      // tools undo stack
+      "<rect class='rf-undo' x='230' y='150' width='180' height='34' rx='7'/>" +
+      "<text x='244' y='172' class='rf-m' font-size='12'>delete 'tools'</text>" +
+      // session undo stack (two entries -> LIFO within one plugin)
+      "<rect class='rf-undo' x='440' y='150' width='180' height='34' rx='7'/>" +
+      "<text x='454' y='172' class='rf-m' font-size='12'>off('run')</text>" +
+      "<rect class='rf-undo' x='440' y='188' width='180' height='34' rx='7'/>" +
+      "<text x='454' y='210' class='rf-m' font-size='12'>delete 'session'</text>" +
+      "<path d='M630 205 L630 167' stroke='var(--accent-2)' stroke-width='1.5' marker-end='url(#rf-arr)'/>" +
+      "<defs><marker id='rf-arr' markerWidth='7' markerHeight='7' refX='5' refY='3' orient='auto'><path d='M0 0 L6 3 L0 6 z' fill='var(--accent-2)'/></marker></defs>" +
+      "<text x='454' y='240' class='rf-ac' font-size='11'>单插件内多条 → LIFO 弹出</text>" +
+      // bottom note box
+      "<rect x='20' y='268' width='600' height='72' rx='10' fill='var(--sel)' stroke='var(--line-2)'/>" +
+      "<text x='38' y='294' class='rf-t' font-size='12.5' font-weight='700'>回滚是两层的</text>" +
+      "<text x='38' y='314' class='rf-t' font-size='12'>插件之间相互独立，卸载 model 只跑它自己那包撤销动作，tools / session 纹丝不动。</text>" +
+      "<text x='38' y='332' class='rf-t' font-size='12'>只有单个插件内部登记的多条副作用，才在它自己那包里严格 LIFO 逐条弹出。</text>" +
+      "</svg>" +
+      "</figure>" +
+      "<div class='callout tip'><span class='c-h'>回滚为什么能精确到单个插件</span>" +
+      "撤销 <b>model</b> 时 <b>tools</b>、<b>session</b> 不会被弹出再压回，因为每个插件这次产生的副作用被 <code>splice</code> 剪进了它自己私有的闭包，卸载只遍历这一包。" +
+      "所谓「移除该服务」，就是首次 <code>provide('model', impl)</code> 时记下的反操作：此前该 key 为空，撤销动作便是 <code>delete</code> 掉这个 key。" +
+      "插件内部若登记了多条副作用，才在这一包里按登记顺序 LIFO 逐条撤销。</div>",
   },
   {
     id: "k1",
