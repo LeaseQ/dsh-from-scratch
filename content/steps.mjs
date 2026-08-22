@@ -85,10 +85,10 @@ export const steps = [
     id: "k0",
     file: "kernel.ts",
     region: "k0",
-    title: "组装一个 agent",
+    title: "万物皆插件",
     prose:
-      "<p>在一切开始之前让我们先思考一个问题，一个能跑起来的 agent 需要哪些能力呢？负责生成回复的model？负责查询外部信息的tools？可以在 run 时把流程推进下去的逻辑（agentLoop）？</p>" +
-      "<p>dsh认为，每项能力都是一个插件，可以根据用户的需求进行动态的组装。而组装的拆卸逻辑是经过精心设计的：每个插件挂载时，会把「如何复原自己」记成一个撤销动作（<code>provide</code> 捕获旧值 <code>prev</code>，<code>on</code> 返回移除监听的函数），记在该插件名下；卸载时只需要执行对应的dispose函数，所以影响范围被控制在该插件内部。</p>"+
+      "<p>在一切开始之前让我们先思考一个问题，一个能跑起来的 agent 需要哪些能力呢？负责生成回复的 <code>model</code>？负责查询外部信息的 <code>tools</code>？可以在 run 时把流程推进下去的逻辑（<code>agentLoop</code>）？</p>" +
+      "<p>dsh认为，<b>每项能力都是一个插件</b>，可以根据用户的需求进行<b>动态的组装</b>。而组装的拆卸逻辑是经过精心设计的：每个插件挂载时，会把「如何复原自己」记成一个<b>撤销动作</b>（<code>provide</code> 捕获旧值 <code>prev</code>，<code>on</code> 返回移除监听的函数），记在该插件名下；<b>卸载时只需要执行对应的dispose函数</b>，所以影响范围被控制在该插件内部。</p>"+
       "<p>下面这个交互框模拟了插件挂载与卸载的过程，你可以点击插件进行装卸，并观察右侧「共享 ctx · 实时状态」面板里 services 与 on(run) 的增减，各插件的 dispose 也会随之登记与移除。</p>",
       principleProse:
       "<p>有了初步概念之后，我们再回到代码层面来看看卸载如何精确到单个插件、「移除该服务」到底移除了什么，右侧会同步给出 <code>kernel.ts</code> 的两段真实源码，一段是 <code>use(plugin)</code>，一段是 <code>provide(name, impl)</code>。</p>" +
