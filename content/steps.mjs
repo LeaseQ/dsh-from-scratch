@@ -85,10 +85,10 @@ export const steps = [
     id: "k0",
     file: "kernel.ts",
     region: "k0",
-    title: "先动手组装一个 agent",
+    title: "动手组装一个 agent",
     prose:
-      "<p>我们先组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
-      "<p>下面这个交互框先不跑 run，点插件即挂载、再点即卸载，看右侧「共享 ctx」面板里的 services 与 on(run) 如何增减、回滚栈如何压入与弹出；跑一轮由本章末尾的另一个演示专门呈现。</p>" +
+      "<p>我们来组装一个能运行的 agent。它需要几项能力：一项负责生成回复（model），一项负责查询外部信息（tools），还有一段在 run 时把流程推进下去的逻辑（agentLoop）。</p>" +
+      "<p>下面这个交互框只演示挂载与卸载：点插件挂载、再点卸载，看右侧「共享 ctx」面板里的 services 与 on(run) 如何增减、回滚栈如何压入与弹出；跑一轮的部分放在本章末尾的另一个演示里。</p>" +
       "<figure class='rollback-fig'>" +
       "<svg viewBox='0 0 640 360' role='img' aria-label='两层回滚结构示意图' xmlns='http://www.w3.org/2000/svg'>" +
       "<defs><style>" +
