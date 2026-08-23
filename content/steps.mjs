@@ -255,7 +255,7 @@ export const steps = [
     id: "s0",
     file: "session.ts",
     region: "s0",
-    title: "接着上一章：能跑起来，还得能看清、能回头",
+    title: "可追溯事件流",
     prose:
       "<p>上一章内核已经把插件拼起来跑一个 agent 了，但只是跑起来还不够，用户仍看不见它每一步在做什么。鉴于 agent 往往会<b>中断</b>、<b>恢复</b>、<b>回退</b>、<b>分叉</b>，想真正做到可观测，必须把每次的运行情况都完整记下来。</p>" +
       "<p>这就是 dsh 的第二大模块：<b>可追溯</b>。</p>" +
@@ -361,9 +361,15 @@ export const steps = [
     prose:
       "<p>第二章从一条只增不改的日志起步，一节一节把它的读法补齐。走到这里，可以把它换来的东西收拢一下，也顺带说清它的边界。</p>" +
       "<p>先看结论：把一次运行完整写进日志之后，回看、续跑、分叉、可观测这几件事，就都变成了对同一条日志的不同读法，而不是各自维护一份状态。为此，前面几节一直守着同一条纪律，要给模型看的内容，先写成事件，再从日志派生。有了这条纪律，几样能力便顺势而来。</p>" +
-      "<p><b>回看</b>靠的是 <code>replay</code>，它按 <code>seq</code> 把已存事件重新投影一遍，既不重跑 agent 也不发模型请求，所以想知道第三步时模型看到了什么，重放出来即可，不必猜。<b>续跑</b>则是中断之后从日志接着往下写，<code>session/end-seed</code> 标出 seed 边界，续跑时清楚从哪一步起算。<b>分叉</b>用 <code>fork(source, boundary?)</code> 把边界之前的事件拷到新日志，前缀只读且共享，试别的走法不会改坏原分支。<b>可观测</b>来自 <code>session/event</code> 这类事件流，它本就出自真相源，观测到的与真正发生的是一回事。至于<b>模型历史不漂移</b>，是因为历史由 <code>deriveMessages</code> 从日志算出、不另存一份，也就不会和日志对不上。</p>" +
-      "<div class='callout def'><span class='c-h'>诚实地摆位置</span>这套做法本质是<b>事件溯源</b>（读写分离）在 agent 场景里的一次彻底落地，并非 dsh 首创。它更值得学的地方，是把「模型输入必须能从日志重构」定成硬不变量，连模型返回的原始 chunk 与请求的 header 都一并写进日志，让「第几步模型看到了什么」都有据可查。</div>" +
-      "<p>把它和 pi 的做法并排看，差别集中在真相源这一处：pi 直接维护并原地改写 <code>context.messages</code>，compaction 也改它，事件流只喂 UI、不持久；dsh 则把事件写进 append-only 日志，状态一律从日志派生。</p>" +
+      "<ul class='plist'>" +
+      "<li><b>回看</b>靠的是 <code>replay</code>，它按 <code>seq</code> 把已存事件重新投影一遍，既不重跑 agent 也不发模型请求，所以想知道第三步时模型看到了什么，重放出来即可，不必猜。</li>" +
+      "<li><b>续跑</b>则是中断之后从日志接着往下写，<code>session/end-seed</code> 标出 seed 边界，续跑时清楚从哪一步起算。</li>" +
+      "<li><b>分叉</b>用 <code>fork(source, boundary?)</code> 把边界之前的事件拷到新日志，前缀只读且共享，试别的走法不会改坏原分支。</li>" +
+      "<li><b>可观测</b>来自 <code>session/event</code> 这类事件流，它本就出自真相源，观测到的与真正发生的是一回事。</li>" +
+      "<li><b>模型历史不漂移</b>，是因为历史由 <code>deriveMessages</code> 从日志算出、不另存一份，也就不会和日志对不上。</li>" +
+      "</ul>" +
+      "<div class='callout def'><span class='c-h'>Tips</span>这套做法本质是<b>事件溯源</b>（读写分离）在 agent 场景里的一次彻底落地，并非 dsh 首创。它更值得学的地方，是把「模型输入必须能从日志重构」定成硬不变量，连模型返回的原始 chunk 与请求的 header 都一并写进日志，让「第几步模型看到了什么」都有据可查。</div>" +
+      "<p>把它和 pi 的做法对比，差别集中在 <b>source of truth</b>：pi 直接维护并原地改写 <code>context.messages</code>，compaction 也改它，事件流只喂 UI、不持久；dsh 则把事件写进 append-only 日志，状态一律从日志派生。</p>" +
       "<table class='compare'><thead><tr><th>维度</th><th>pi（存并改写 messages）</th><th>dsh（append-only 事件 + 派生）</th></tr></thead><tbody>" +
       "<tr><td>真相源</td><td>原地维护的 <code>context.messages</code> 数组</td><td class='hi'>append-only 的 <code>SessionEvent</code> 日志</td></tr>" +
       "<tr><td>模型历史</td><td>就是 messages 本身，compaction 也直接改它</td><td class='hi'>由 <code>deriveMessages</code> 从日志派生，不另存一份</td></tr>" +
@@ -372,9 +378,18 @@ export const steps = [
       "<tr><td>续跑</td><td>无持久日志，续跑依赖内存里的 messages</td><td class='hi'>可从日志续写，<code>session/end-seed</code> 标 seed 边界</td></tr>" +
       "<tr><td>可观测</td><td>事件流只喂 UI、不持久、非真相源</td><td class='hi'><code>session/event</code> 事件流，来源即真相源</td></tr>" +
       "</tbody></table>" +
-      "<p class='cite'>把视野放宽一点看，LangGraph 用 checkpointer 保存图状态的快照，OpenAI Assistants 的 threads 在服务端保存 message 列表，多是「存状态、存消息」的路子；dsh 走的是「存事件、派生状态」。这一段属于一般认知，供参照，未逐一核对。</p>" +
-      "<div class='callout warn'><span class='c-h'>代价也要摆出来</span>可追溯不是白来的。日志只增不改，体积会持续增长；模型历史每轮都要重新派生，带来额外开销；而且它成立的前提，是严格守住「模型可见必先入日志」这条不变量，一旦在别处偷偷存一份状态，可追溯就会破。dsh 的 compaction 用 <code>surfaceOp: replace</code> 叠加来压缩、而非改写历史，正是想在压体积的同时不动这条底线。</div>" +
-      "<p>回到第二章开头那张图：中间那条日志一直没变，变的只是我们从哪个角度去读它。看清、回头、试别的走法，到这里就都落到了同一处地基上。</p>" +
+      "<p class='cite'>对照另一类做法：LangGraph 的持久化靠 checkpointer 保存线程的图状态快照（<a href='https://docs.langchain.com/oss/python/langgraph/persistence' target='_blank' rel='noreferrer'>LangChain 官方文档 · Persistence，2026-08 访问</a>：Checkpointers persist a thread's graph state as checkpoints），属于「存状态」的路子；dsh 走的是「存事件、派生状态」。</p>" +
+      "<div class='callout warn'><span class='c-h'>代价</span>当然，可追溯也不是白来的，需要承担相应的代价：" +
+      "<ol class='plist'>" +
+      "<li>日志只增不改，体积会持续增长；</li>" +
+      "<li>模型历史每轮都要重新派生，带来额外开销；</li>" +
+      "<li>它成立的前提，是严格遵循「模型可见必先入日志」这条规则，dsh 的 compaction 用 <code>surfaceOp: replace</code> 叠加来压缩、而非改写历史。</li>" +
+      "</ol></div>" +
+      "<h3 class='wrapup-h'>回过头看 dsh</h3>" +
+      "<p>两章合起来，dsh 的骨架其实只有两根：<b>能力怎么来</b>，交给插件装配，<code>ctx</code> 既是服务注册表也是事件总线，连 agent loop 自己都是挂上去的插件，没有特权核心；<b>发生了什么</b>，交给 append-only 的事件日志，模型历史、回放、分叉、续跑都从这条日志派生，不另存一份状态。这两根骨架分别对应它那句 <code>Everything is a plugin, Every run is traceable</code>。</p>" +
+      "<p>两者是互相咬合的：插件可以随时替换、叠加，行为组合会变得很松散，此时日志作为唯一真相源，把「谁在什么时候做了什么」钉死下来，插件再怎么换，运行过程仍然可查、可回放。</p>" +
+      "<p>nano-dsh 用 6 个文件、166 行代码（含注释与空行共 271 行）复刻的就是这两根骨架。真实 dsh 的 <code>packages/</code> 核心代码（TS/TSX，排除测试与生成文件）约 24.6 万行，多出来的部分是模型适配、工具与技能、sandbox、存储、调度、终端 UI 这些工程层，内核这两条主线并没有变。</p>" +
+      "<p class='cite'>行数为本站实测：克隆 <a href='https://github.com/deepseek-ai/deepseek-harness' target='_blank' rel='noreferrer'>deepseek-ai/deepseek-harness</a> 于 commit <code>b150a55</code>（2026-08 统计）后按上述口径统计得到。</p>" +
       "<p class='cite'>参考：<a href='https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/master/docs/subsystems/session.md' target='_blank' rel='noreferrer'>dsh session 子系统文档</a> · <a href='https://raw.githubusercontent.com/deepseek-ai/deepseek-harness/master/docs/architecture.md' target='_blank' rel='noreferrer'>dsh 架构文档</a></p>",
   },
 ];

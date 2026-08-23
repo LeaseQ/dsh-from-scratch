@@ -92,6 +92,17 @@ code { font-family: var(--mono); font-size: 0.85em; background: #efece6; padding
 .callout.def b { color: var(--accent); }
 .callout .c-h { display: block; font-weight: 700; font-size: 12.5px; letter-spacing: 0.4px; margin-bottom: 3px; text-transform: uppercase; opacity: 0.85; }
 
+/* ---------- 正文分点列表 ---------- */
+.step .plist { margin: 14px 0; padding-left: 22px; }
+.step .plist li { margin: 7px 0; line-height: 1.85; }
+ul.plist { list-style: disc; }
+ol.plist { list-style: decimal; }
+.callout .plist { margin: 8px 0 2px; padding-left: 20px; }
+.callout .plist li { margin: 5px 0; }
+
+/* ---------- 章末总结小标题 ---------- */
+.step .wrapup-h { margin: 26px 0 10px; font-size: 17px; font-weight: 700; letter-spacing: 0.2px; }
+
 /* ---------- 轻量数据流图示 ---------- */
 .flow { margin: 20px 0; padding: 16px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; }
 .flow-title { font-size: 12.5px; color: var(--txt-dim); font-family: var(--mono); margin-bottom: 12px; letter-spacing: 0.3px; }
