@@ -8,7 +8,7 @@ export const meta = {
   // 先导：暖场，讲清楚这篇是啥、怎么读
   preface:
     "<blockquote class='pf-quote'>看懂一个框架，与其读完它上万行源码，不如挑出关键的部分，自己动手写一遍。</blockquote>" +
-    "<p>dsh（DeepSeek Harness）是 DeepSeek 开源的 agent harness，知识和内容很多，但随之而来的是上万行代码和大量 AI 生成的、难以理解的冗杂解析。</p>" +
+    "<p>dsh（DeepSeek Harness）是 DeepSeek 开源的 agent harness，值得学习的知识和内容很多，但随之而来的是上万行代码，如果直接扔给 AI 解析，难免走马观花。</p>" +
     "<p>这篇文章不打算详细阐述它全部的设计思想，而是挑出了两个有代表性的模块，用一百多行从零写一遍。写完后，你就可以直观感受到它长什么样、有什么优缺点。</p>" +
     "<p>这个精简版我叫它 nano-dsh。</p>" +
     "<p>读法很简单：跟着文字往下走，需要什么就写什么，右边编辑器里对应的代码会自己浮现出来。你不用一上来就盯着几百行发怵，读到哪里、代码就会定位到哪里。</p>" +
@@ -292,6 +292,7 @@ export const steps = [
     prose:
       "<p>重点来了。模型看到的历史<b>不是另存一份</b>，而是把日志从头过一遍<b>算</b>出来，dsh 里这个函数叫 <code>deriveMessages</code>。</p>" +
       "<p>谁进历史谁不进，规则很清楚：<code>user/message</code>、<code>assistant/message</code>、<code>tool/result</code> <b>进</b>；<code>assistant/chunk</code>、<code>turn/*</code>、<code>tool/call</code> <b>不进</b>，它们只管回放和显示。</p>" +
+      "<div class='callout def'><span class='c-h'>不进历史 ≠ 信息丢了</span>三类事件被跳过的理由各不相同：<code>assistant/chunk</code> 是流式碎片，说完的整句由 <code>assistant/message</code> 收口，两者都进模型就会看到重复的半截文本；<code>turn/*</code> 只标一轮的起止，是时间线上的分隔符；<code>tool/call</code> 的名字与参数其实已经记在 <code>assistant/message</code> 事件的 <code>toolCalls</code> 字段里，跟着那条 assistant 消息一起进历史，它自己这条事件只是「这一刻开始执行第几个调用」的时间点标记，留给回放和时间线用。<br/>换句话说，跳过的是<b>重复的与纯计时的</b>，模型该看到的一句没少。对照右侧 <code>session.ts</code> 的事件定义与 <code>messages.ts</code> 里的 <code>switch</code> 就能核对。</div>" +
       "<div class='flow'>" +
       "<div class='flow-title'>数据流：日志是源头，历史是投影</div>" +
       "<div class='flow-row'><span class='flow-node x'>agent 运行</span><span class='flow-arrow'>→ append →</span><span class='flow-node k'>SessionLog（只增不改）</span></div>" +
