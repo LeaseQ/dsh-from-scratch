@@ -347,10 +347,10 @@ export const steps = [
     id: "s6",
     file: "agent-loop.ts",
     region: "s6",
-    title: "接上 loop：先写日志，再问模型",
+    title: "接上 loop：先写日志，再传给模型",
     prose:
-      "<p>最后接上 loop。这里的规矩是：要给模型看的，<b>先写成事件</b>（<code>append</code>），再从日志 <code>deriveMessages</code> 算出请求，别在 loop 里偷偷存一份 <code>messages</code>。</p>" +
-      "<p>守住这条，每一步就自动能<b>回放</b>、能<b>分叉</b>。右边切到「<b>Trace 回放</b>」，对着这段 loop 一步步走一遍看看。</p>" +
+      "<p>最后接上 loop。这里的规则是：给模型看的，<b>先写成事件</b>（<code>append</code>），再从日志 <code>deriveMessages</code> 算出请求，而不是在 loop 里存一份 <code>messages</code>。</p>" +
+      "<p>可以在右侧切到「<b>Trace 回放</b>」栏，对着 loop 示例走一遍看看对应日志是如何生成的。</p>" +
       "<div class='callout warn'><span class='c-h'>这里的顺序不能反</span>一旦 loop 里出现一份<b>私藏的</b> <code>messages</code>，或者<b>先问模型再补日志</b>，可追溯就破了：回放会与真实运行<b>对不上</b>，分叉也会缺事件。破坏的根源都在写入次序被打乱。</div>",
   },
   {

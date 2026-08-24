@@ -12,6 +12,13 @@ const N = EVENTS.length;
 const KW = new Set(["import","export","from","class","private","public","return","const","let","new","for","of","in","while","if","else","break","switch","case","async","await","function","yield","extends","implements","this","true","false","null","undefined","crypto"]);
 const TYPES = new Set(["type","string","number","boolean","unknown","any","void","readonly","Omit","Generator","Promise","Array","Map","Message","SessionEvent","SessionLog","ToolCall","Frame","Role"]);
 function esc(s: string) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+// 只滚动容器自身，不触发整页滚动
+function keepInView(box: HTMLElement, el: HTMLElement) {
+  const br = box.getBoundingClientRect();
+  const er = el.getBoundingClientRect();
+  if (er.top < br.top) box.scrollTop += er.top - br.top - 8;
+  else if (er.bottom > br.bottom) box.scrollTop += er.bottom - br.bottom + 8;
+}
 function highlight(line: string) {
   const re = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|(\b\d[\d.]*\b)|([A-Za-z_$][\w$]*)|(\s+)|([^\s\w$])/g;
   let out = "", m: RegExpExecArray | null;
@@ -292,6 +299,8 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
   const codeScrollRef = useRef<HTMLDivElement>(null);
   const articleRef = useRef<HTMLElement>(null);
   const traceCodeRef = useRef<HTMLPreElement>(null);
+  const logListRef = useRef<HTMLDivElement>(null);
+  const msgListRef = useRef<HTMLDivElement>(null);
 
   // Cordis 内核演示：左侧控件 + 右侧动态状态/日志（共享同一份状态）
   const cordis = useCordisDemo();
@@ -384,7 +393,12 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
   useLayoutEffect(() => {
     if (tab !== "trace") return;
     const hot = traceCodeRef.current?.querySelector<HTMLElement>(".hot");
-    hot?.scrollIntoView({ block: "nearest" });
+    if (hot && traceCodeRef.current) keepInView(traceCodeRef.current, hot);
+    const logBox = logListRef.current;
+    const curEv = logBox?.querySelector<HTMLElement>(".ev.cur");
+    if (logBox && curEv) keepInView(logBox, curEv);
+    const msgBox = msgListRef.current;
+    if (msgBox) msgBox.scrollTop = msgBox.scrollHeight;
   }, [pos, tab]);
 
   const toggleBp = useCallback((i: number) => {
@@ -503,7 +517,7 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
               <div className="trace-side">
                 <div className="panel">
                   <div className="panel-head">📜 append-only 日志 <span className="muted">{pos} 条</span></div>
-                  <div className="panel-body log-list">
+                  <div className="panel-body log-list" ref={logListRef}>
                     {EVENTS.map((e, i) => {
                       const [cls, visible] = TY[e.type];
                       const applied = i < pos;
@@ -521,7 +535,7 @@ function Chapter({ steps, hasTrace, onNext, nextLabel, onProgress }: {
                 </div>
                 <div className="panel">
                   <div className="panel-head">🧠 模型看到的历史 <span className="muted">deriveMessages(日志)</span></div>
-                  <div className="panel-body msg-list">
+                  <div className="panel-body msg-list" ref={msgListRef}>
                     {msgs.length === 0 ? (
                       <div className="empty">还没有任何模型可见消息</div>
                     ) : (
